@@ -5,8 +5,10 @@ import org.keycloak.models.AuthenticatedClientSessionModel
 import org.keycloak.models.KeycloakSession
 import org.keycloak.models.ProtocolMapperModel
 import org.keycloak.models.UserSessionModel
+import org.keycloak.protocol.docker.DockerAuthV2Protocol
 import org.keycloak.protocol.docker.mapper.DockerAuthV2AttributeMapper
 import org.keycloak.protocol.docker.mapper.DockerAuthV2ProtocolMapper
+import org.keycloak.representations.docker.DockerAccess
 import org.keycloak.representations.docker.DockerResponseToken
 
 // reference: https://www.baeldung.com/keycloak-custom-protocol-mapper
@@ -51,23 +53,32 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         clientSession: AuthenticatedClientSessionModel
     ): DockerResponseToken {
 
-        logger.debug("Access Items: ${responseToken.accessItems.size}")
+        val scope = clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)
+            ?: return responseToken //no scope, no worries
+
+        val accessItem = try {
+            DockerAccess(scope)
+        } catch (e: Exception) {
+            logger.warn("Could not parse scope '$scope' into access object", e)
+            return responseToken
+        }
 
         val clientRoleNames = userSession.user.getClientRoleMappingsStream(clientSession.client)
             .map { it.name.lowercase() }.toList()
 
+        //admins
         if (clientRoleNames.contains(ROLE_ADMIN)) {
             if (logger.isDebugEnabled) {
                 logger.debug("Granting all access for user '${userSession.user.username}' because user is admin")
             }
-            return responseToken //admins can access everything
+            responseToken.accessItems.add(accessItem) //admins can access everything
+            return responseToken
         }
 
+        //normal users -> if they have the group, check for pull and push roles too?
         val groupNames = userSession.user.groupsStream.map { it.name.lowercase() }.toList()
         if (logger.isDebugEnabled) {
-            logger.debug("User: ${userSession.user.username}")
             logger.debug("Groups: ${groupNames.joinToString()}")
-            logger.debug("Client Roles: ${clientRoleNames.joinToString()}")
         }
 
         //TODO implement role and group mapping
