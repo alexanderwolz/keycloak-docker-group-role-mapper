@@ -16,10 +16,12 @@ import org.keycloak.representations.docker.DockerResponseToken
 
 class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), DockerAuthV2AttributeMapper {
 
-    companion object{
+    companion object {
         private const val PROVIDER_ID = "docker-v2-allow-by-groups-and-roles-mapper"
         private const val DISPLAY_TYPE = "Allow by Groups and Roles"
         private const val HELP_TEXT = "Maps Docker v2 scopes by user roles and groups"
+
+        private const val ROLE_ADMIN = "admin"
     }
 
     private val logger = Logger.getLogger(javaClass.simpleName)
@@ -48,9 +50,28 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         userSession: UserSessionModel,
         clientSession: AuthenticatedClientSessionModel
     ): DockerResponseToken {
-        logger.trace("User: ${userSession.user.username}")
-        logger.trace("Groups: ${userSession.user.groupsStream.map { it.name }.toList().joinToString()}")
-        logger.trace("Roles: ${userSession.user.roleMappingsStream.map { it.name }.toList().joinToString()}")
+
+        logger.debug("Access Items: ${responseToken.accessItems.size}")
+
+        val clientRoleNames = userSession.user.getClientRoleMappingsStream(clientSession.client)
+            .map { it.name.lowercase() }.toList()
+
+        if (clientRoleNames.contains(ROLE_ADMIN)) {
+            if (logger.isDebugEnabled) {
+                logger.debug("Granting all access for user '${userSession.user.username}' because user is admin")
+            }
+            return responseToken //admins can access everything
+        }
+
+        val groupNames = userSession.user.groupsStream.map { it.name.lowercase() }.toList()
+        if (logger.isDebugEnabled) {
+            logger.debug("User: ${userSession.user.username}")
+            logger.debug("Groups: ${groupNames.joinToString()}")
+            logger.debug("Client Roles: ${clientRoleNames.joinToString()}")
+        }
+
+        //TODO implement role and group mapping
+
         return responseToken
     }
 }
