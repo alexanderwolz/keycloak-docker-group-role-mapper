@@ -18,8 +18,6 @@ import org.keycloak.representations.docker.DockerResponseToken
 
 class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), DockerAuthV2AttributeMapper {
 
-    //TODO do we need to check for actions such as push and pull?
-
     companion object {
         private const val PROVIDER_ID = "docker-v2-allow-by-groups-and-roles-mapper"
         private const val DISPLAY_TYPE = "Allow by Groups and Roles"
@@ -157,6 +155,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         }
 
         if (userNamespaces.contains(namespace)) {
+            // users can push and pull from their own namespaces
             if (logger.isDebugEnabled) {
                 logger.debug("Granting access for user '${userSession.user.username}' on scope '$scope'")
             }
