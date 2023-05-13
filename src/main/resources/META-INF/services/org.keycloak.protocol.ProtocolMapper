@@ -1,1 +1,1 @@
-de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsToDockerRoleMapper
+de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper
