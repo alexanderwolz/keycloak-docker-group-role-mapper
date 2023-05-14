@@ -58,7 +58,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         clientSession: AuthenticatedClientSessionModel
     ): DockerResponseToken {
 
-        val scope = clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)
+        val scope = getScopeFromSession(clientSession)
             ?: return responseToken //no scope, no worries
 
         val accessItem = parseScopeIntoAccessItem(scope)
@@ -86,15 +86,26 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
 
         if (accessItem.type == ACCESS_TYPE_REGISTRY) {
             if (logger.isDebugEnabled) {
-                logger.debug("Access denied for user '${userSession.user.username}' on scope '$scope': " +
-                        "Role '$ROLE_ADMIN' needed to access registry scope")
+                logger.debug(
+                    "Access denied for user '${userSession.user.username}' on scope '$scope': " +
+                            "Role '$ROLE_ADMIN' needed to access registry scope"
+                )
             }
             return responseToken //only admins can access scope 'registry'
         }
+
         if (logger.isDebugEnabled) {
             logger.debug("Access denied for user '${userSession.user.username}' on scope '$scope'")
         }
         return responseToken
+    }
+
+    private fun getScopeFromSession(clientSession: AuthenticatedClientSessionModel): String? {
+        val scope = clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)
+        if(logger.isDebugEnabled && scope == null){
+            logger.debug("Session does not contain a scope, ignoring further access check")
+        }
+        return scope
     }
 
     private fun parseScopeIntoAccessItem(scope: String): DockerAccess? {

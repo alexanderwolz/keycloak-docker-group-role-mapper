@@ -15,11 +15,18 @@ dependencies {
     compileOnly 'org.keycloak:keycloak-services:21.1.1'
     compileOnly 'org.keycloak:keycloak-server-spi:21.1.1'
     compileOnly 'org.keycloak:keycloak-server-spi-private:21.1.1'
+
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:4.1.0'
+    testImplementation 'org.keycloak:keycloak-core:21.1.1'
+    testImplementation 'org.keycloak:keycloak-services:21.1.1'
+    testImplementation 'org.keycloak:keycloak-server-spi:21.1.1'
+    testImplementation 'org.keycloak:keycloak-server-spi-private:21.1.1'
 }
 
 test {
     useJUnitPlatform()
+    systemProperty 'java.util.logging.config.file', "${projectDir}/src/test/resources/logging.properties"
 }
 
 compileKotlin {
