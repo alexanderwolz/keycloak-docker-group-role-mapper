@@ -5,7 +5,7 @@ It allows access for all users with client role ```admin``` or who belong to a r
 
 ## Build
 1. Create jar resource using ```./gradlew clean build```
-2. Copy  ```/build/libs/keycloak-docker-group-role-mapper-1.0.0.jar``` into Keycloak´s ```/opt/keycloak/providers/```folder
+2. Copy  ```/build/libs/keycloak-docker-group-role-mapper-1.0.0.jar``` into Keycloak´s ```/opt/keycloak/providers/``` folder
 3. Build keycloak instance using ```/opt/keycloak/bin/kc.sh build```
 
 See also Keycloak [Dockerfile](https://github.com/alexanderwolz/keycloak-docker-group-role-mapper/blob/main/examples/keycloak-with-mapper/Dockerfile) for reference in [examples](https://github.com/alexanderwolz/keycloak-docker-group-role-mapper/tree/main/examples) section.
