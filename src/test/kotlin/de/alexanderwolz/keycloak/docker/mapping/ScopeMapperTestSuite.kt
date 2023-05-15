@@ -46,11 +46,13 @@ internal class ScopeMapperTestSuite {
         private const val SCOPE_REPO_PLUGIN_NAMESPACE_PULL = "repository(plugin):${NAMESPACE}/${IMAGE}:pull"
         private const val SCOPE_REPO_PLUGIN_NAMESPACE_PULL_PUSH = "repository(plugin):${NAMESPACE}/${IMAGE}:pull,push"
 
-        private const val ROLE_PUSH = MapperToTest.ROLE_PUSH
+        private const val ROLE_USER = MapperToTest.ROLE_USER
+        private const val ROLE_EDITOR = MapperToTest.ROLE_EDITOR
         private const val ROLE_ADMIN = MapperToTest.ROLE_ADMIN
 
-        private const val ACTION_PUSH = MapperToTest.ACTION_PUSH
         private const val ACTION_PULL = MapperToTest.ACTION_PULL
+        private const val ACTION_PUSH = MapperToTest.ACTION_PUSH
+        private const val ACTION_DELETE = MapperToTest.ACTION_DELETE
         internal const val ACTION_ALL = MapperToTest.ACTION_ALL
 
         private const val GROUP_NAMESPACE = "${MapperToTest.GROUP_PREFIX}${NAMESPACE}"
@@ -60,7 +62,7 @@ internal class ScopeMapperTestSuite {
     private val logger = Logger.getLogger(javaClass)
 
     //transformDockerResponseToken - uses responseToken, userSession and clientSession
-    private val mapper = MapperToTest()
+    private lateinit var mapper: MapperToTest
 
     private lateinit var responseToken: DockerResponseToken
 
@@ -75,6 +77,8 @@ internal class ScopeMapperTestSuite {
     @Test
     @BeforeEach
     private fun setUp() {
+
+        mapper = MapperToTest()
 
         //unused objects but necessary because of signature
         responseToken = DockerResponseToken()
@@ -129,9 +133,11 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_without_groups_and_without_roles_on_registry_scope_all_catalog() {
+        internal fun user_without_groups_and_without_roles_on_registry_scope_all_catalog_without_env() {
 
             logCurrentTestMethodName()
+
+            mapper.catalogAudience.clear()
 
             val expectedScope = SCOPE_REGISTRY_CATALOG_ALL
             given(clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)).willReturn(expectedScope)
@@ -486,7 +492,49 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_all_with_namespace() {
+        internal fun user_without_groups_and_with_editor_role_on_registry_scope_all_catalog_with_env_user() {
+
+            logCurrentTestMethodName()
+
+            mapper.catalogAudience.add(ROLE_USER)
+
+            val expectedScope = SCOPE_REGISTRY_CATALOG_ALL
+            given(clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)).willReturn(expectedScope)
+            assertEquals(expectedScope, clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM))
+
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
+            given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
+
+            val actualToken = transformDockerResponseToken()
+            assertEquals(1, actualToken.accessItems.size)
+
+            val expectedActions = setOf(ACTION_ALL)
+            TestUtils.assertSameContent(expectedActions, actualToken.accessItems.first().actions)
+        }
+
+        @Test
+        internal fun user_without_groups_and_with_editor_role_on_registry_scope_all_catalog_with_env_editor() {
+
+            logCurrentTestMethodName()
+
+            mapper.catalogAudience.add(ROLE_EDITOR)
+
+            val expectedScope = SCOPE_REGISTRY_CATALOG_ALL
+            given(clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)).willReturn(expectedScope)
+            assertEquals(expectedScope, clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM))
+
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
+            given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
+
+            val actualToken = transformDockerResponseToken()
+            assertEquals(1, actualToken.accessItems.size)
+
+            val expectedActions = setOf(ACTION_ALL)
+            TestUtils.assertSameContent(expectedActions, actualToken.accessItems.first().actions)
+        }
+
+        @Test
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_all_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -498,18 +546,18 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
             assertEquals(1, actualToken.accessItems.size)
 
-            val expectedActions = setOf(ACTION_PUSH, ACTION_PULL)
+            val expectedActions = setOf(ACTION_PULL, ACTION_PUSH, ACTION_DELETE)
             TestUtils.assertSameContent(expectedActions, actualToken.accessItems.first().actions)
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_all_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_all_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -521,7 +569,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -529,7 +577,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_pull_with_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_pull_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -541,7 +589,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -552,7 +600,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_pull_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_pull_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -564,7 +612,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -572,7 +620,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_push_with_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_push_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -584,7 +632,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -595,7 +643,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_push_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_push_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -607,7 +655,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -615,7 +663,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_pull_and_push_with_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_pull_and_push_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -627,7 +675,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -638,7 +686,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_scope_pull_and_push_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_scope_pull_and_push_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -650,7 +698,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -658,7 +706,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_all_with_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_all_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -670,18 +718,18 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
             assertEquals(1, actualToken.accessItems.size)
 
-            val expectedActions = setOf(ACTION_PUSH, ACTION_PULL)
+            val expectedActions = setOf(ACTION_PULL, ACTION_PUSH, ACTION_DELETE)
             TestUtils.assertSameContent(expectedActions, actualToken.accessItems.first().actions)
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_all_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_all_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -693,7 +741,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -701,7 +749,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_pull_with_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_pull_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -713,7 +761,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -724,7 +772,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_pull_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_pull_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -736,7 +784,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -744,7 +792,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_push_with_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_push_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -756,7 +804,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -767,7 +815,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_push_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_push_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -779,7 +827,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -787,7 +835,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_pull_and_push_with_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_pull_and_push_with_namespace() {
 
             logCurrentTestMethodName()
 
@@ -799,7 +847,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
@@ -810,7 +858,7 @@ internal class ScopeMapperTestSuite {
         }
 
         @Test
-        internal fun user_with_namespace_group_and_push_role_on_repository_plugin_scope_pull_and_push_without_namespace() {
+        internal fun user_with_namespace_group_and_with_editor_role_on_repository_plugin_scope_pull_and_push_without_namespace() {
 
             logCurrentTestMethodName()
 
@@ -822,7 +870,7 @@ internal class ScopeMapperTestSuite {
             given(userModel.groupsStream).willAnswer { groups.stream() }
             assertEquals(groups, userModel.groupsStream.toList())
 
-            val roles = TestUtils.createClientRolesByNames(ROLE_PUSH)
+            val roles = TestUtils.createClientRolesByNames(ROLE_EDITOR)
             given(userModel.getClientRoleMappingsStream(clientModel)).willAnswer { roles.stream() }
 
             val actualToken = transformDockerResponseToken()
