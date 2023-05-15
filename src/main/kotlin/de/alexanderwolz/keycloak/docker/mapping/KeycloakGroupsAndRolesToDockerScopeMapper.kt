@@ -28,8 +28,13 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         private const val ACCESS_TYPE_REPOSITORY = "repository"
         private const val ACCESS_TYPE_REPOSITORY_PLUGIN = "repository(plugin)"
 
-        private const val ROLE_ADMIN = "admin"
-        private const val GROUP_PREFIX = "registry-"
+        internal const val ACTION_PULL = "pull"
+        internal const val ACTION_PUSH = "push"
+        internal const val ACTION_ALL = "*"
+
+        internal const val ROLE_ADMIN = "admin"
+        internal const val ROLE_PUSH = "push"
+        internal const val GROUP_PREFIX = "registry-"
     }
 
     private val logger = Logger.getLogger(javaClass.simpleName)
@@ -64,45 +69,40 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         val accessItem = parseScopeIntoAccessItem(scope)
             ?: return responseToken //could not parse scope, return empty token
 
+        if (accessItem.actions.isEmpty()) {
+            return responseToken // no actions given in scope
+        }
+
         val clientRoleNames = getClientRoleNames(userSession, clientSession)
 
         //admins
         if (clientRoleNames.contains(ROLE_ADMIN)) {
-            if (logger.isDebugEnabled) {
-                logger.debug("Granting all access for user '${userSession.user.username}' (has role '$ROLE_ADMIN')")
-            }
-            responseToken.accessItems.add(accessItem) //admins can access everything
-            return responseToken
+            //admins can access everything
+            //TODO shall we substitute '*' here with pull and push too?
+            return allowAll(responseToken, scope, accessItem, userSession, "User has role '$ROLE_ADMIN'")
         }
 
         //users
         if (accessItem.type == ACCESS_TYPE_REPOSITORY) {
-            return handleRepositoryAccess(scope, accessItem, responseToken, userSession)
+            return handleRepositoryAccess(responseToken, scope, clientRoleNames, accessItem, userSession)
         }
 
         if (accessItem.type == ACCESS_TYPE_REPOSITORY_PLUGIN) {
-            return handleRepositoryPluginAccess(scope, accessItem, responseToken, userSession)
+            return handleRepositoryPluginAccess(scope, clientRoleNames, accessItem, responseToken, userSession)
         }
 
         if (accessItem.type == ACCESS_TYPE_REGISTRY) {
-            if (logger.isDebugEnabled) {
-                logger.debug(
-                    "Access denied for user '${userSession.user.username}' on scope '$scope': " +
-                            "Role '$ROLE_ADMIN' needed to access registry scope"
-                )
-            }
-            return responseToken //only admins can access scope 'registry'
+            //only admins can access scope 'registry'
+            val reason = "Role '$ROLE_ADMIN' needed to access registry scope"
+            return denyAll(responseToken, scope, userSession, reason)
         }
 
-        if (logger.isDebugEnabled) {
-            logger.debug("Access denied for user '${userSession.user.username}' on scope '$scope'")
-        }
-        return responseToken
+        return denyAll(responseToken, scope, userSession, "Unsupported access type '${accessItem.type}'")
     }
 
     private fun getScopeFromSession(clientSession: AuthenticatedClientSessionModel): String? {
         val scope = clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)
-        if(logger.isDebugEnabled && scope == null){
+        if (logger.isDebugEnabled && scope == null) {
             logger.debug("Session does not contain a scope, ignoring further access check")
         }
         return scope
@@ -129,56 +129,29 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
             .map { it.name.lowercase() }.toList()
     }
 
-    private fun handleRepositoryPluginAccess(
+    private fun allowAll(
+        responseToken: DockerResponseToken,
         scope: String,
         accessItem: DockerAccess,
-        responseToken: DockerResponseToken,
-        userSession: UserSessionModel
+        userSession: UserSessionModel,
+        reason: String
     ): DockerResponseToken {
-        return handleRepositoryAccess(scope, accessItem, responseToken, userSession)
+        if (logger.isDebugEnabled) {
+            logger.debug("Granting access for user '${userSession.user.username}' on scope '$scope': $reason")
+        }
+        responseToken.accessItems.add(accessItem)
+        return responseToken
     }
 
-    private fun handleRepositoryAccess(
-        scope: String,
-        accessItem: DockerAccess,
+    private fun denyAll(
         responseToken: DockerResponseToken,
-        userSession: UserSessionModel
+        scope: String,
+        userSession: UserSessionModel,
+        reason: String
     ): DockerResponseToken {
-
-        val namespace = getRepositoryNamespace(accessItem)
-        if (namespace == null) {
-            if (logger.isDebugEnabled) {
-                logger.debug(
-                    "Access denied for user '${userSession.user.username}' on scope '$scope': " +
-                            "Role '$ROLE_ADMIN' needed to access default namespace repositories"
-                )
-            }
-            return responseToken //only admins can access default namespace repositories
-        }
-
-        val userNamespaces = getUserNamespaces(userSession).also {
-            if (it.isEmpty()) {
-                if (logger.isDebugEnabled) {
-                    logger.debug("User '${userSession.user.username}' does not belong to any namespace (check groups)")
-                }
-                return responseToken
-            }
-        }
-
-        if (userNamespaces.contains(namespace)) {
-            // users can push and pull from their own namespaces
-            if (logger.isDebugEnabled) {
-                logger.debug("Granting access for user '${userSession.user.username}' on scope '$scope'")
-            }
-            responseToken.accessItems.add(accessItem)
-            return responseToken
-        }
-
         if (logger.isDebugEnabled) {
-            logger.debug(
-                "Access denied for user '${userSession.user.username}' on scope '$scope': " +
-                        "Missing namespace group $GROUP_PREFIX$namespace"
-            )
+            val username = userSession.user.username
+            logger.debug("Access denied for user '$username' on scope '$scope': $reason")
         }
         return responseToken
     }
@@ -195,5 +168,99 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
             return parts[0].lowercase()
         }
         return null
+    }
+
+    private fun handleRepositoryPluginAccess(
+        scope: String,
+        clientRoleNames: Collection<String>,
+        accessItem: DockerAccess,
+        responseToken: DockerResponseToken,
+        userSession: UserSessionModel
+    ): DockerResponseToken {
+        return handleRepositoryAccess(responseToken, scope, clientRoleNames, accessItem, userSession)
+    }
+
+    private fun handleRepositoryAccess(
+        responseToken: DockerResponseToken,
+        scope: String,
+        clientRoleNames: Collection<String>,
+        accessItem: DockerAccess,
+        userSession: UserSessionModel
+    ): DockerResponseToken {
+
+        val namespace = getRepositoryNamespace(accessItem)
+        if (namespace == null) {
+            //only admins can access default namespace repositories
+            val reason = "Role '$ROLE_ADMIN' needed to access default namespace repositories"
+            return denyAll(responseToken, scope, userSession, reason)
+        }
+
+        val userNamespaces = getUserNamespaces(userSession).also {
+            if (it.isEmpty()) {
+                val reason = "User does not belong to any namespace (check groups)"
+                return denyAll(responseToken, scope, userSession, reason)
+            }
+        }
+
+        return if (userNamespaces.contains(namespace)) {
+            handleNamespaceRepositoryAccess(responseToken, scope, accessItem, clientRoleNames, userSession)
+        } else {
+            val reason = "Missing namespace group '$GROUP_PREFIX$namespace' (check groups)"
+            denyAll(responseToken, scope, userSession, reason)
+        }
+    }
+
+    private fun handleNamespaceRepositoryAccess(
+        responseToken: DockerResponseToken,
+        scope: String,
+        accessItem: DockerAccess,
+        clientRoleNames: Collection<String>,
+        userSession: UserSessionModel
+    ): DockerResponseToken {
+
+        val requestedActions = accessItem.actions
+        accessItem.actions = calculateAllowedActions(accessItem, clientRoleNames)
+
+        if (accessItem.actions.isEmpty()) {
+            return denyAll(responseToken, scope, userSession, "Missing privileges (check client roles)")
+        }
+
+        if(accessItem.actions.containsAll(requestedActions)){
+            val reason = "User has privilege on all actions"
+            return allowAll(responseToken, scope, accessItem, userSession, reason)
+        }
+
+        val reason = "User has privilege only on '${accessItem.actions.joinToString()}'"
+        return allowAll(responseToken, scope, accessItem, userSession, reason)
+    }
+
+    internal fun calculateAllowedActions(
+        accessItem: DockerAccess,
+        clientRoleNames: Collection<String>
+    ): List<String> {
+        val allowedActions = ArrayList<String>()
+        substituteActions(accessItem).forEach { action ->
+            if (ACTION_PUSH == action && clientRoleNames.contains(ROLE_PUSH)) {
+                allowedActions.add(action)
+            }
+            if (ACTION_PULL == action) {
+                //all users in namespace group can pull images
+                //TODO consider having a pull role?
+                allowedActions.add(action)
+            }
+        }
+        return allowedActions
+    }
+
+    // we replace '*' by pull and push, but this should normally not be the case
+    // on repository types. We substitute just in case
+    internal fun substituteActions(accessItem: DockerAccess): Set<String> {
+        return HashSet(accessItem.actions).also { actions ->
+            if (actions.contains(ACTION_ALL)) {
+                actions.remove(ACTION_ALL)
+                actions.add(ACTION_PULL)
+                actions.add(ACTION_PUSH)
+            }
+        }
     }
 }
