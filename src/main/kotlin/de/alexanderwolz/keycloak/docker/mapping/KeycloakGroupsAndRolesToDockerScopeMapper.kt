@@ -18,21 +18,9 @@ import org.keycloak.representations.docker.DockerResponseToken
 
 class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), DockerAuthV2AttributeMapper {
 
-    companion object {
-        private const val PROVIDER_ID = "docker-v2-allow-by-groups-and-roles-mapper"
-        private const val DISPLAY_TYPE = "Allow by Groups and Roles"
-        private const val HELP_TEXT = "Maps Docker v2 scopes by user roles and groups"
-
-        //see also https://docs.docker.com/registry/spec/auth/scope/
-        private const val ACCESS_TYPE_REGISTRY = "registry"
-        private const val ACCESS_TYPE_REPOSITORY = "repository"
-        private const val ACCESS_TYPE_REPOSITORY_PLUGIN = "repository(plugin)"
-
-        private const val ROLE_ADMIN = "admin"
-        private const val GROUP_PREFIX = "registry-"
-    }
-
     private val logger = Logger.getLogger(javaClass.simpleName)
+
+    internal val catalogAudience = HashSet<String>()
 
     override fun getId(): String {
         return PROVIDER_ID
@@ -64,45 +52,57 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         val accessItem = parseScopeIntoAccessItem(scope)
             ?: return responseToken //could not parse scope, return empty token
 
+        if (accessItem.actions.isEmpty()) {
+            return responseToken // no actions given in scope
+        }
+
         val clientRoleNames = getClientRoleNames(userSession, clientSession)
 
         //admins
         if (clientRoleNames.contains(ROLE_ADMIN)) {
-            if (logger.isDebugEnabled) {
-                logger.debug("Granting all access for user '${userSession.user.username}' (has role '$ROLE_ADMIN')")
-            }
-            responseToken.accessItems.add(accessItem) //admins can access everything
-            return responseToken
+            //admins can access everything
+            return allowAll(responseToken, scope, accessItem, userSession, "User has role '$ROLE_ADMIN'")
         }
 
         //users
+        if (accessItem.type == ACCESS_TYPE_REGISTRY) {
+            if (accessItem.name == NAME_CATALOG) {
+                if (isAllowedToAccessCategory(clientRoleNames)) {
+                    val reason = "Allowed by catalog audience '${catalogAudience.joinToString()}'"
+                    return allowAll(responseToken, scope, accessItem, userSession, reason)
+                }
+                val reason = "Role '$ROLE_ADMIN' or \$${KEY_REGISTRY_CATALOG_AUDIENCE} needed to access catalog"
+                return denyAll(responseToken, scope, userSession, reason)
+            }
+            //only admins can access scope 'registry'
+            val reason = "Role '$ROLE_ADMIN' needed to access registry scope"
+            return denyAll(responseToken, scope, userSession, reason)
+        }
+
         if (accessItem.type == ACCESS_TYPE_REPOSITORY) {
-            return handleRepositoryAccess(scope, accessItem, responseToken, userSession)
+            return handleRepositoryAccess(responseToken, scope, clientRoleNames, accessItem, userSession)
         }
 
         if (accessItem.type == ACCESS_TYPE_REPOSITORY_PLUGIN) {
-            return handleRepositoryPluginAccess(scope, accessItem, responseToken, userSession)
+            return handleRepositoryPluginAccess(scope, clientRoleNames, accessItem, responseToken, userSession)
         }
 
-        if (accessItem.type == ACCESS_TYPE_REGISTRY) {
-            if (logger.isDebugEnabled) {
-                logger.debug(
-                    "Access denied for user '${userSession.user.username}' on scope '$scope': " +
-                            "Role '$ROLE_ADMIN' needed to access registry scope"
-                )
-            }
-            return responseToken //only admins can access scope 'registry'
-        }
+        return denyAll(responseToken, scope, userSession, "Unsupported access type '${accessItem.type}'")
+    }
 
-        if (logger.isDebugEnabled) {
-            logger.debug("Access denied for user '${userSession.user.username}' on scope '$scope'")
+    private fun isAllowedToAccessCategory(clientRoleNames: Collection<String>): Boolean {
+        if (catalogAudience.contains(ROLE_USER)) {
+            return true
         }
-        return responseToken
+        if (catalogAudience.contains(ROLE_EDITOR) && clientRoleNames.contains(ROLE_EDITOR)) {
+            return true
+        }
+        return false
     }
 
     private fun getScopeFromSession(clientSession: AuthenticatedClientSessionModel): String? {
         val scope = clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)
-        if(logger.isDebugEnabled && scope == null){
+        if (logger.isDebugEnabled && scope == null) {
             logger.debug("Session does not contain a scope, ignoring further access check")
         }
         return scope
@@ -129,56 +129,29 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
             .map { it.name.lowercase() }.toList()
     }
 
-    private fun handleRepositoryPluginAccess(
+    private fun allowAll(
+        responseToken: DockerResponseToken,
         scope: String,
         accessItem: DockerAccess,
-        responseToken: DockerResponseToken,
-        userSession: UserSessionModel
+        userSession: UserSessionModel,
+        reason: String
     ): DockerResponseToken {
-        return handleRepositoryAccess(scope, accessItem, responseToken, userSession)
+        if (logger.isDebugEnabled) {
+            logger.debug("Granting access for user '${userSession.user.username}' on scope '$scope': $reason")
+        }
+        responseToken.accessItems.add(accessItem)
+        return responseToken
     }
 
-    private fun handleRepositoryAccess(
-        scope: String,
-        accessItem: DockerAccess,
+    private fun denyAll(
         responseToken: DockerResponseToken,
-        userSession: UserSessionModel
+        scope: String,
+        userSession: UserSessionModel,
+        reason: String
     ): DockerResponseToken {
-
-        val namespace = getRepositoryNamespace(accessItem)
-        if (namespace == null) {
-            if (logger.isDebugEnabled) {
-                logger.debug(
-                    "Access denied for user '${userSession.user.username}' on scope '$scope': " +
-                            "Role '$ROLE_ADMIN' needed to access default namespace repositories"
-                )
-            }
-            return responseToken //only admins can access default namespace repositories
-        }
-
-        val userNamespaces = getUserNamespaces(userSession).also {
-            if (it.isEmpty()) {
-                if (logger.isDebugEnabled) {
-                    logger.debug("User '${userSession.user.username}' does not belong to any namespace (check groups)")
-                }
-                return responseToken
-            }
-        }
-
-        if (userNamespaces.contains(namespace)) {
-            // users can push and pull from their own namespaces
-            if (logger.isDebugEnabled) {
-                logger.debug("Granting access for user '${userSession.user.username}' on scope '$scope'")
-            }
-            responseToken.accessItems.add(accessItem)
-            return responseToken
-        }
-
         if (logger.isDebugEnabled) {
-            logger.debug(
-                "Access denied for user '${userSession.user.username}' on scope '$scope': " +
-                        "Missing namespace group $GROUP_PREFIX$namespace"
-            )
+            val username = userSession.user.username
+            logger.debug("Access denied for user '$username' on scope '$scope': $reason")
         }
         return responseToken
     }
@@ -195,5 +168,145 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
             return parts[0].lowercase()
         }
         return null
+    }
+
+    private fun handleRepositoryPluginAccess(
+        scope: String,
+        clientRoleNames: Collection<String>,
+        accessItem: DockerAccess,
+        responseToken: DockerResponseToken,
+        userSession: UserSessionModel
+    ): DockerResponseToken {
+        return handleRepositoryAccess(responseToken, scope, clientRoleNames, accessItem, userSession)
+    }
+
+    private fun handleRepositoryAccess(
+        responseToken: DockerResponseToken,
+        scope: String,
+        clientRoleNames: Collection<String>,
+        accessItem: DockerAccess,
+        userSession: UserSessionModel
+    ): DockerResponseToken {
+
+        val namespace = getRepositoryNamespace(accessItem)
+        if (namespace == null) {
+            //only admins can access default namespace repositories
+            val reason = "Role '$ROLE_ADMIN' needed to access default namespace repositories"
+            return denyAll(responseToken, scope, userSession, reason)
+        }
+
+        val userNamespaces = getUserNamespaces(userSession).also {
+            if (it.isEmpty()) {
+                val reason = "User does not belong to any namespace (check groups)"
+                return denyAll(responseToken, scope, userSession, reason)
+            }
+        }
+
+        return if (userNamespaces.contains(namespace)) {
+            handleNamespaceRepositoryAccess(responseToken, scope, accessItem, clientRoleNames, userSession)
+        } else {
+            val reason = "Missing namespace group '$GROUP_PREFIX$namespace' (check groups)"
+            denyAll(responseToken, scope, userSession, reason)
+        }
+    }
+
+    private fun handleNamespaceRepositoryAccess(
+        responseToken: DockerResponseToken,
+        scope: String,
+        accessItem: DockerAccess,
+        clientRoleNames: Collection<String>,
+        userSession: UserSessionModel
+    ): DockerResponseToken {
+
+        val requestedActions = accessItem.actions
+        accessItem.actions = calculateAllowedActions(accessItem, clientRoleNames)
+
+        if (accessItem.actions.isEmpty()) {
+            return denyAll(responseToken, scope, userSession, "Missing privileges (check client roles)")
+        }
+
+        if (accessItem.actions.containsAll(requestedActions)) {
+            val reason = "User has privilege on all actions in namespace scope '${accessItem.name}'"
+            return allowAll(responseToken, scope, accessItem, userSession, reason)
+        }
+
+        val reason = "User has privilege only on '${accessItem.actions}' in namespace scope '${accessItem.name}'"
+        return allowAll(responseToken, scope, accessItem, userSession, reason)
+    }
+
+    internal fun calculateAllowedActions(
+        accessItem: DockerAccess,
+        clientRoleNames: Collection<String>
+    ): List<String> {
+        val allowedActions = ArrayList<String>()
+        substituteActions(accessItem).forEach { action ->
+            if (ACTION_PUSH == action && clientRoleNames.contains(ROLE_EDITOR)) {
+                allowedActions.add(action)
+            }
+            if (ACTION_DELETE == action && clientRoleNames.contains(ROLE_EDITOR)) {
+                allowedActions.add(action)
+            }
+            if (ACTION_PULL == action) {
+                //all users in namespace group can pull images (read only by default)
+                allowedActions.add(action)
+            }
+        }
+        return allowedActions
+    }
+
+    // replaces '*' by pull, push and delete (should not be the case on repository types)
+    internal fun substituteActions(accessItem: DockerAccess): Set<String> {
+        return HashSet(accessItem.actions).also { actions ->
+            if (actions.contains(ACTION_ALL)) {
+                actions.remove(ACTION_ALL)
+                actions.add(ACTION_PULL)
+                actions.add(ACTION_PUSH)
+                actions.add(ACTION_DELETE)
+            }
+        }
+    }
+
+    private val environment: Map<String, String> = try {
+        System.getenv()
+    } catch (e: Exception) {
+        emptyMap()
+    }
+
+    init {
+        environment[KEY_REGISTRY_CATALOG_AUDIENCE]?.let { audienceString ->
+            catalogAudience.addAll(audienceString.split(",")
+                .map { it.lowercase() }
+                .filter {
+                    it == ROLE_USER || it == ROLE_EDITOR
+                }
+            )
+        }
+    }
+
+    companion object {
+        private const val PROVIDER_ID = "docker-v2-allow-by-groups-and-roles-mapper"
+        private const val DISPLAY_TYPE = "Allow by Groups and Roles"
+        private const val HELP_TEXT = "Maps Docker v2 scopes by user roles and groups"
+
+        internal const val KEY_REGISTRY_CATALOG_AUDIENCE = "REGISTRY_CATALOG_AUDIENCE"
+
+        //see also https://docs.docker.com/registry/spec/auth/scope/
+        private const val ACCESS_TYPE_REGISTRY = "registry"
+        private const val ACCESS_TYPE_REPOSITORY = "repository"
+        private const val ACCESS_TYPE_REPOSITORY_PLUGIN = "repository(plugin)"
+
+        private const val NAME_CATALOG = "catalog"
+
+        internal const val ACTION_PULL = "pull"
+        internal const val ACTION_PUSH = "push"
+        internal const val ACTION_DELETE = "delete"
+        internal const val ACTION_ALL = "*"
+
+        //anybody with access to namespace repo is considered 'user'
+        internal const val ROLE_USER = "user"
+        internal const val ROLE_EDITOR = "editor"
+        internal const val ROLE_ADMIN = "admin"
+
+        internal const val GROUP_PREFIX = "registry-"
     }
 }
