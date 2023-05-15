@@ -1,4 +1,12 @@
 # Docker v2 - Groups and Role Mapper for Keycloak 21.x
+
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/alexanderwolz/keycloak-docker-group-role-mapper)
+![GitHub](https://img.shields.io/badge/keycloak-21.1.1-orange)
+![GitHub](https://img.shields.io/badge/registry-2.8.2-orange)
+![GitHub](https://img.shields.io/github/license/alexanderwolz/keycloak-docker-group-role-mapper)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/alexanderwolz/keycloak-docker-group-role-mapper)
+![GitHub all releases](https://img.shields.io/github/downloads/alexanderwolz/keycloak-docker-group-role-mapper/total?color=informational)
+
 This repository provides a MappingProvider for Keycloak's Docker Registry V2 protocol. It manages access for users with client role ```admin``` or ```editor``` or who belong to a realm group starting with prefix ```registry-```.
 
 ## Build
