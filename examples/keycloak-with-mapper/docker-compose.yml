@@ -1,0 +1,35 @@
+version: "3.9"
+services:
+
+  database:
+    image: mariadb:10.9.5
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: database
+      MARIADB_USER: user
+      MARIADB_PASSWORD: password
+    networks:
+      - database
+
+  keycloak:
+    container_name: keycloak
+    hostname: keycloak
+    build: .
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      REGISTRY_CATALOG_AUDIENCE: editor #user|editor
+      REGISTRY_NAMESPACE_SCOPE: group,username #group,|username
+      KC_LOG_LEVEL: debug #info|debug|trace
+      KC_DB_URL: jdbc:mariadb://database:3306/database
+      KC_DB_USERNAME: user
+      KC_DB_PASSWORD: password
+      KC_HOSTNAME: myauthorizationserver.com
+    depends_on:
+        - database
+    networks:
+      - database
+ networks:
+  database:
