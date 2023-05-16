@@ -1,8 +1,9 @@
 ARG KEYCLOAK_VERSION="21.1.1"
-ARG MAPPER_VERSION="1.0.0"
+ARG MAPPER_VERSION="1.1.0"
 
 # stage 1: keycloak build
 FROM keycloak/keycloak:${KEYCLOAK_VERSION} as builder
+LABEL maintainer="mail@alexanderwolz.de"
 ARG MAPPER_VERSION
 ENV KC_FEATURES=docker,token-exchange
 COPY keycloak-docker-group-role-mapper-${MAPPER_VERSION}.jar /opt/keycloak/providers/
@@ -10,6 +11,7 @@ RUN /opt/keycloak/bin/kc.sh build
 
 ## stage 2: runtime
 FROM keycloak/keycloak:${KEYCLOAK_VERSION} as runtime
+LABEL maintainer="mail@alexanderwolz.de"
 COPY --from=builder /opt/keycloak/lib/quarkus/ /opt/keycloak/lib/quarkus/
 COPY --from=builder /opt/keycloak/providers/ /opt/keycloak/providers/
 WORKDIR /opt/keycloak
