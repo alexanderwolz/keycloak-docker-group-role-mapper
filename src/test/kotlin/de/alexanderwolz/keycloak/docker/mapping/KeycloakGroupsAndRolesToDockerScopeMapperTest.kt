@@ -1,6 +1,5 @@
 package de.alexanderwolz.keycloak.docker.mapping
 
-import de.alexanderwolz.keycloak.docker.mapping.test.utils.TestUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.keycloak.representations.docker.DockerAccess
@@ -13,6 +12,7 @@ internal class KeycloakGroupsAndRolesToDockerScopeMapperTest {
     @Test
     internal fun substitute_actions_with_scope_all() {
         val accessItem = DockerAccess().also {
+            it.name = "johnny/image"
             it.actions = listOf("*")
         }
         val expectedActions = setOf("pull", "push", "delete")
@@ -23,6 +23,7 @@ internal class KeycloakGroupsAndRolesToDockerScopeMapperTest {
     @Test
     internal fun substitute_actions_with_scope_all_and_pull() {
         val accessItem = DockerAccess().also {
+            it.name = "johnny/image"
             it.actions = listOf("*", "pull")
         }
         val expectedActions = setOf("pull", "push", "delete")
@@ -33,32 +34,35 @@ internal class KeycloakGroupsAndRolesToDockerScopeMapperTest {
     @Test
     internal fun calculate_actions_with_scope_all_and_editor_roles() {
         val accessItem = DockerAccess().also {
+            it.name = "johnny/image"
             it.actions = listOf("*")
         }
         val clientRoleNames = listOf(MapperToTest.ROLE_EDITOR)
         val expectedActions = setOf("pull", "push", "delete")
-        val allowedActions = mapper.calculateAllowedActions(accessItem, clientRoleNames)
-        TestUtils.assertSameContent(expectedActions, allowedActions)
+        val allowedActions = mapper.calculateAllowedActions(accessItem, clientRoleNames, "Johnny")
+        assertEquals(expectedActions.sorted(), allowedActions.sorted())
     }
 
     @Test
     internal fun calculate_actions_with_scope_push_and_pull_and_no_roles() {
         val accessItem = DockerAccess().also {
+            it.name = "johnny/image"
             it.actions = listOf("push", "pull")
         }
         val expectedActions = setOf("pull")
-        val allowedActions = mapper.calculateAllowedActions(accessItem, emptySet())
-        TestUtils.assertSameContent(expectedActions, allowedActions)
+        val allowedActions = mapper.calculateAllowedActions(accessItem, emptySet(), "Johnny")
+        assertEquals(expectedActions.sorted(), allowedActions.sorted())
     }
 
     @Test
     internal fun calculate_actions_with_scope_all_and_no_roles() {
         val accessItem = DockerAccess().also {
+            it.name = "johnny/image"
             it.actions = listOf("*")
         }
         val expectedActions = setOf("pull")
-        val allowedActions = mapper.calculateAllowedActions(accessItem, emptySet())
-        TestUtils.assertSameContent(expectedActions, allowedActions)
+        val allowedActions = mapper.calculateAllowedActions(accessItem, emptySet(), "Johnny")
+        assertEquals(expectedActions.sorted(), allowedActions.sorted())
     }
 
 }
