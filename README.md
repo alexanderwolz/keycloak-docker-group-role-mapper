@@ -13,7 +13,7 @@ This repository provides a MappingProvider for Keycloak's Docker Registry V2 pro
 
 ## 🛠️ Build
 1. Create jar resource using ```./gradlew clean build```
-2. Copy  ```/build/libs/keycloak-docker-group-role-mapper-1.0.0.jar``` into Keycloak´s ```/opt/keycloak/providers/``` folder
+2. Copy  ```/build/libs/keycloak-docker-group-role-mapper-1.2.0.jar``` into Keycloak´s ```/opt/keycloak/providers/``` folder
 3. Build keycloak instance using ```/opt/keycloak/bin/kc.sh build```
 
 See also Keycloak [Dockerfile](https://github.com/alexanderwolz/keycloak-docker-group-role-mapper/blob/main/examples/keycloak-with-mapper/Dockerfile) for reference in [examples](https://github.com/alexanderwolz/keycloak-docker-group-role-mapper/tree/main/examples) section.
@@ -31,9 +31,12 @@ Don't forget to remove the "*Allow All*"-Mapper in the dedicated scope of your r
 
 ## ⚙️ Configuration
 By setting an environment variable ```REGISTRY_CATALOG_AUDIENCE``` to either ```user``` or ```editor```, access can be granted to the catalog scope on the registry type (e.g. registry:catalog:*).
-This may be of interest while using UI frontends such as [registry-ui](https://github.com/Joxit/docker-registry-ui).
+That would be of interest to users who want to access UI frontends such as [registry-ui](https://github.com/Joxit/docker-registry-ui). It is set to ```none``` by default.
+
+By setting an environment variable ```REGISTRY_NAMESPACE_SCOPE``` to either  ```username``` or ```group``` or both (separated by ```,```), the mapper will check for repository namespaces in *registry-groups* and/or by *username*. This environment variable is set to ```group``` by default or if empty. If ```username``` is set, users will be granted all privileges on their own repository even if they don't have the ```editor``` role assigned.
 
 - - -
+
 Made with ❤️ in Bavaria
 <br>
 © 2023, <a href="https://www.alexanderwolz.de"> Alexander Wolz

@@ -1,5 +1,5 @@
 ARG KEYCLOAK_VERSION="21.1.1"
-ARG MAPPER_VERSION="1.1.0"
+ARG MAPPER_VERSION="1.2.0"
 
 # stage 1: keycloak build
 FROM keycloak/keycloak:${KEYCLOAK_VERSION} as builder
