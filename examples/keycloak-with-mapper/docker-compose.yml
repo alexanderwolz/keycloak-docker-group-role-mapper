@@ -21,7 +21,7 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       REGISTRY_CATALOG_AUDIENCE: editor #user|editor
-      REGISTRY_NAMESPACE_SCOPE: group,username #group,|username
+      REGISTRY_NAMESPACE_SCOPE: group #username|group|group,username
       KC_LOG_LEVEL: debug #info|debug|trace
       KC_DB_URL: jdbc:mariadb://database:3306/database
       KC_DB_USERNAME: user
@@ -31,5 +31,6 @@ services:
         - database
     networks:
       - database
+
  networks:
   database:
