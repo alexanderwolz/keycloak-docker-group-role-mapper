@@ -33,7 +33,7 @@ Don't forget to remove the "*Allow All*"-Mapper in the dedicated scope of your r
 By setting an environment variable ```REGISTRY_CATALOG_AUDIENCE``` to either ```user``` or ```editor```, access can be granted to the catalog scope on the registry type (e.g. registry:catalog:*).
 That would be of interest to users who want to access UI frontends such as [registry-ui](https://github.com/Joxit/docker-registry-ui). It is set to ```none``` by default.
 
-By setting an environment variable ```REGISTRY_NAMESPACE_SCOPE``` to either  ```username``` or ```group``` or both (separated by ```,```), the mapper will check for repository namespaces in *registry-groups* and/or by *username*. This environment variable is set to ```group``` by default. If ```username``` is set, users will be granted all privileges on their own repository even if they don't have the ```editor``` role assigned.
+By setting an environment variable ```REGISTRY_NAMESPACE_SCOPE``` to either  ```username``` or ```group``` or both (separated by ```,```), the mapper will check for repository namespaces in *registry-groups* and/or by *username*. This environment variable is set to ```group``` by default or if empty. If ```username``` is set, users will be granted all privileges on their own repository even if they don't have the ```editor``` role assigned.
 
 - - -
 

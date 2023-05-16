@@ -326,15 +326,22 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
 
     init {
         environment[KEY_REGISTRY_CATALOG_AUDIENCE]?.let { audienceString ->
-            catalogAudience.addAll(audienceString.split(",").map { it.lowercase() }.filter {
+            val configValues = audienceString.split(",")
+            catalogAudience.addAll(configValues.map { it.lowercase() }.filter {
                 it == ROLE_USER || it == ROLE_EDITOR
             })
         } ?: catalogAudience.clear()
 
         environment[KEY_REGISTRY_NAMESPACE]?.let { scopeString ->
-            namespaceScope.addAll(scopeString.split(",").map { it.lowercase() }.filter {
+            val configValues = scopeString.split(",")
+            namespaceScope.addAll(configValues.map { it.lowercase() }.filter {
                 it == NAMESPACE_SCOPE_GROUP || it == NAMESPACE_SCOPE_USERNAME
             })
+            if(namespaceScope.isEmpty()){
+                logger.warn("Empty or unsupported config values for \$$KEY_REGISTRY_NAMESPACE: $scopeString")
+                logger.warn("Resetting \$$KEY_REGISTRY_NAMESPACE to default: $NAMESPACE_SCOPE_GROUP")
+                namespaceScope.addAll(setOf(NAMESPACE_SCOPE_GROUP))
+            }
         } ?: namespaceScope.addAll(setOf(NAMESPACE_SCOPE_GROUP))
     }
 
