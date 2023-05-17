@@ -4,36 +4,81 @@
 ![GitHub](https://img.shields.io/badge/keycloak-21.1.1-orange)
 ![GitHub](https://img.shields.io/badge/registry-2.8.2-orange)
 ![GitHub](https://img.shields.io/github/license/alexanderwolz/keycloak-docker-group-role-mapper)
+![GitHub](https://img.shields.io/badge/test_cases-413-informational)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/alexanderwolz/keycloak-docker-group-role-mapper)
 ![GitHub all releases](https://img.shields.io/github/downloads/alexanderwolz/keycloak-docker-group-role-mapper/total?color=informational)
 
 ## 🧑‍💻 About
 
-This repository provides a MappingProvider for Keycloak's Docker Registry V2 protocol. It manages access for users with client role ```admin``` or ```editor``` or who belong to a realm group starting with prefix ```registry-```.
+This repository provides a MappingProvider for Keycloak's Docker-v2 protocol. It manages registry access for users with client role ```admin``` or ```editor``` and who are assigned to realm groups named like ```registry-${namespace}```. Clients without any roles are treated as ```user``` and will be granted read-only access to the namespace by default. This behavior can be overwritten by environment variables (see configuration) 
 
 ## 🛠️ Build
 1. Create jar resource using ```./gradlew clean build```
-2. Copy  ```/build/libs/keycloak-docker-group-role-mapper-1.2.0.jar``` into Keycloak´s ```/opt/keycloak/providers/``` folder
+2. Copy  ```/build/libs/*.jar``` into Keycloak´s ```/opt/keycloak/providers/``` folder
 3. Build keycloak instance using ```/opt/keycloak/bin/kc.sh build```
 
 See also Keycloak [Dockerfile](https://github.com/alexanderwolz/keycloak-docker-group-role-mapper/blob/main/examples/keycloak-with-mapper/Dockerfile) for reference in [examples](https://github.com/alexanderwolz/keycloak-docker-group-role-mapper/tree/main/examples) section.
 
-## 🔬 Basic Requirements
-You need to create ```admin``` and ```editor``` roles in the client role settings of keycloak. You can group users to the same repository namespace by assigning them to a group starting with ```registry-```.
-
-For example: users that shall have access to *myregistry.com/mycompany/alpine/1.2.3-custom* should be assigned to group ```registry-mycompany```. All users will have read-only (pull) access by default.
-
-By assigning the role ```editor``` they are also allowed to push and delete images in their namespaces (they can belong to several registry groups though).
-
-Assigning the client role ```admin``` will allow access to any resource in the registry and give full access.
-
-Don't forget to remove the "*Allow All*"-Mapper in the dedicated scope of your registry client configuration and set this Mapper by adding "*Allow by Groups and Roles*"-Mapper.
+## 🔬 Basic Concept
+- Users can be grouped to the same repository namespace by assigning them to one or several groups starting with ```registry-```.
+- Without any client roles assigned, users will be granted read-only access to their namespaces.
+- Assigning the client role ```editor``` will allow users to also push and delete images in their namespaces.
+- Assigning the client role ```admin``` will allow access to any resource in the whole registry and give full access.
+- Without having any roles and groups assigned, users will have full access to the namespace if it matches their username (can be configured via environment variables, default off)
 
 ## ⚙️ Configuration
-By setting an environment variable ```REGISTRY_CATALOG_AUDIENCE``` to either ```user``` or ```editor```, access can be granted to the catalog scope on the registry type (e.g. registry:catalog:*).
-That would be of interest to users who want to access UI frontends such as [registry-ui](https://github.com/Joxit/docker-registry-ui). It is set to ```none``` by default.
+This mapper supports following environment variables (either set on server or in docker container):
 
-By setting an environment variable ```REGISTRY_NAMESPACE_SCOPE``` to either  ```username``` or ```group``` or both (separated by ```,```), the mapper will check for repository namespaces in *registry-groups* and/or by *username*. This environment variable is set to ```group``` by default or if empty. If ```username``` is set, users will be granted all privileges on their own repository even if they don't have the ```editor``` role assigned.
+| Variable Name                   | Values                                            | Description                                                                                                                                                                                                                                                                                                                                                                               |
+|---------------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ```REGISTRY_CATALOG_AUDIENCE``` | ```editor```, ```user```                          | Will allow editors or users to access *registry:catalog:** scope. That would be of interest to users who want to access UI frontends<br> No scope is set by default, so only admins are allowed to access registry scope                                                                                                                                                                  |
+| ```REGISTRY_NAMESPACE_SCOPE```  | ```group```, ```username```, ```group,username``` | If ```username``` is set, users will be granted full access to the namespace if it matches their username (lowercase check).<br>If ```group``` is set, users will be checked for group membership and be granted access to the repository according their roles.<br>Namespace scope ```group``` is set by default or if value is empty or no value matches ```username``` or ```group```. |
+
+
+## 🔒 Keycloak Setup
+
+Keycloak must be setup to have a docker-v2 registry client, roles and optional groups. The registry then must be configured to use OIDC configuration provided by Keycloak
+
+### Create Registry Client Configuration
+1. Go to realm and choose "Clients" section
+2. Create new client by clicking "Create client"
+3. Choose Client Type *docker-v2* and insert client id e.g. "myregistry"
+4. Set valid redirect URL
+
+### Create Client Roles
+1. In Client Page, choose "Roles"-tab
+2. Click "Create role" and set role name to ```admin```
+3. Go back to "Roles"-tab
+4. Click "Create role" and set role name to ```editor```
+
+### Set the Mapper
+1. in Client Page, choose "Client scopes"-tab
+2. Go to "myregistry-dedicated" scope
+3. Delete "docker-v2-allow-all-mapper" configuration
+4. Click "Configure a new mapper" button
+5. Choose "Allow by Groups and Roles" mapper (this mapper)
+6. Give it a name e.g. "Allow by Groups and Roles Mapper"
+
+### Create Roles
+1. Go to realm and choose "Groups" section
+2. Click "Create group"
+3. Name it "registry-mycompany"
+
+### Assign Roles to users
+1. Go to realm and choose "Users" section
+2. Choose your user and select "Role mapping"
+3. Click "Assign role"
+4. Filter by "clients" and search for 'myregistry'
+5. Choose either ```admin``` or ```editor```
+6. Click "Assign"
+
+### Assign Groups to users
+1. Go to realm and choose "Users" section
+2. Choose your user and select "Groups"
+3. Click "Join Group"
+4. Select "registry-mycompany"
+5. Click "Join"
+6. Now the user will have access to registry namespace *myregistry.com/mycompany/* (depending on its role)
 
 - - -
 
