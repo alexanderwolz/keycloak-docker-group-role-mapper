@@ -59,6 +59,8 @@ Keycloak must be setup to have a docker-v2 registry client, roles and optional g
 5. Choose "Allow by Groups and Roles" mapper (this mapper)
 6. Give it a name e.g. "Allow by Groups and Roles Mapper"
 
+![Keycloak Registry Client Config](assets/keycloak-config/create_registry_client.gif)
+
 ### Create Roles
 1. Go to realm and choose "Groups" section
 2. Click "Create group"
@@ -78,7 +80,9 @@ Keycloak must be setup to have a docker-v2 registry client, roles and optional g
 3. Click "Join Group"
 4. Select "registry-mycompany"
 5. Click "Join"
-6. Now the user will have access to registry namespace *myregistry.com/mycompany/* (depending on its role)
+6. Now the user will have access to registry namespace *myregistry.com/mycompany/*
+
+![Keycloak Registry Client Config](assets/keycloak-config/assign_role_and_group_to_user.gif)
 
 - - -
 
