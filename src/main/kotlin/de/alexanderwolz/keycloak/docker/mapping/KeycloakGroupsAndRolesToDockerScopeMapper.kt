@@ -196,7 +196,11 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
             return allowWithActions(responseToken, accessItem, allowedActions, user, "Accessing user's own namespace")
         }
 
-        if (namespaceScope.contains(NAMESPACE_SCOPE_DOMAIN) && isEmailDomainRepository(namespace, user.email)) {
+        if (namespaceScope.contains(NAMESPACE_SCOPE_DOMAIN) && isDomainRepository(namespace, user.email)) {
+            return handleNamespaceRepositoryAccess(responseToken, accessItem, clientRoleNames, user)
+        }
+
+        if (namespaceScope.contains(NAMESPACE_SCOPE_SLD) && isSecondLevelDomainRepository(namespace, user.email)) {
             return handleNamespaceRepositoryAccess(responseToken, accessItem, clientRoleNames, user)
         }
 
@@ -214,7 +218,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
             return deny(responseToken, accessItem, user, reason)
         }
 
-        val reason = "User does not belong to namespace '$namespace' either by group nor username nor email"
+        val reason = "User does not belong to namespace '$namespace' either by group nor username nor domain"
         return deny(responseToken, accessItem, user, reason)
     }
 
@@ -246,8 +250,12 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         return namespace == username.lowercase()
     }
 
-    private fun isEmailDomainRepository(namespace: String, email: String): Boolean {
+    private fun isDomainRepository(namespace: String, email: String): Boolean {
         return namespace == MapperUtils.getDomainFromEmail(email)
+    }
+
+    private fun isSecondLevelDomainRepository(namespace: String, email: String): Boolean {
+        return namespace == MapperUtils.getSecondLevelDomainFromEmail(email)
     }
 
     private fun getEnv(key: String): String? {
@@ -264,19 +272,24 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         return getEnv(KEY_REGISTRY_CATALOG_AUDIENCE)?.let {
             val audienceString = it.lowercase()
             if (audienceString == AUDIENCE_USER) {
-                AUDIENCE_USER
+                return@let AUDIENCE_USER
             }
             if (audienceString == AUDIENCE_EDITOR) {
-                AUDIENCE_EDITOR
+                return@let AUDIENCE_EDITOR
             }
-            AUDIENCE_ADMIN
+            return@let AUDIENCE_ADMIN
         } ?: AUDIENCE_ADMIN
     }
 
     private fun getNamespaceScopeFromEnv(): Set<String> {
         return getEnv(KEY_REGISTRY_NAMESPACE_SCOPE)?.let { scopeString ->
             val scopes = scopeString.split(",").map { it.lowercase() }
-                .filter { it == NAMESPACE_SCOPE_GROUP || it == NAMESPACE_SCOPE_USERNAME || it == NAMESPACE_SCOPE_DOMAIN }
+                .filter {
+                    it == NAMESPACE_SCOPE_GROUP
+                            || it == NAMESPACE_SCOPE_USERNAME
+                            || it == NAMESPACE_SCOPE_DOMAIN
+                            || it == NAMESPACE_SCOPE_SLD
+                }
             if (scopes.isEmpty()) {
                 logger.warn("Empty or unsupported config values for \$$KEY_REGISTRY_NAMESPACE_SCOPE: $scopeString")
                 logger.warn("Resetting \$$KEY_REGISTRY_NAMESPACE_SCOPE to default: $NAMESPACE_SCOPE_DEFAULT")
@@ -294,7 +307,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         internal const val GROUP_PREFIX = "registry-"
 
         //anybody with access to namespace repo is considered 'user'
-        internal const val ROLE_USER = "user"
+        private const val ROLE_USER = "user"
         internal const val ROLE_EDITOR = "editor"
         internal const val ROLE_ADMIN = "admin"
 
@@ -308,6 +321,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         internal const val NAMESPACE_SCOPE_USERNAME = "username"
         internal const val NAMESPACE_SCOPE_GROUP = "group"
         internal const val NAMESPACE_SCOPE_DOMAIN = "domain"
+        internal const val NAMESPACE_SCOPE_SLD = "sld"
         internal val NAMESPACE_SCOPE_DEFAULT = setOf(NAMESPACE_SCOPE_GROUP)
 
         //see also https://docs.docker.com/registry/spec/auth/scope/

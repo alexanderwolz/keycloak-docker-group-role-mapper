@@ -51,6 +51,15 @@ class MapperUtils {
             return null //no valid domain
         }
 
+        fun getSecondLevelDomainFromEmail(email: String): String? {
+            val domain = getDomainFromEmail(email) ?: return null
+            val parts = domain.split(".")
+            if (parts.size > 1) {
+                return parts[parts.size - 2]
+            }
+            return null
+        }
+
         // replaces '*' by pull, push and delete
         fun substituteRequestedActions(requestedActions: Collection<String>): List<String> {
             return HashSet(requestedActions).also { actions ->

@@ -113,6 +113,24 @@ class MapperUtilsTest {
     }
 
     @Test
+    internal fun test_second_level_domain() {
+        val sld = MapperUtils.getSecondLevelDomainFromEmail("john.doe@company.com")
+        assertEquals("company", sld)
+    }
+
+    @Test
+    internal fun test_second_level_domain_with_subdomain() {
+        val sld = MapperUtils.getSecondLevelDomainFromEmail("john.doe@mail.company.com")
+        assertEquals("company", sld)
+    }
+
+    @Test
+    internal fun test_second_level_domain_with_invalid_email() {
+        val sld = MapperUtils.getSecondLevelDomainFromEmail("john.doe")
+        assertNull(sld)
+    }
+
+    @Test
     internal fun substitute_actions_with_scope_all() {
         val requestedActions = listOf(ACTION_ALL)
         val expectedActions = setOf("pull", "push", "delete")
