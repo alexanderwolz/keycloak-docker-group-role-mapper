@@ -129,33 +129,6 @@ class AdminTestSuite : AbstractScopeMapperTestSuite() {
     }
 
     @Nested
-    inner class RegistryCatalogScopeForAudienceUserAndEditorTests {
-
-        @Test
-        internal fun admin_no_groups_on_registry_catalog_scope_all_audience_user_and_editor() {
-            setScope(SCOPE_REGISTRY_CATALOG_ALL)
-            setAudience(AUDIENCE_USER, AUDIENCE_EDITOR)
-            assertContainsOneAccessItemWithActions(ACTION_ALL)
-        }
-
-        @Test
-        internal fun admin_other_groups_on_registry_catalog_scope_all_audience_user_and_editor() {
-            setGroups(GROUP_NAMESPACE_OTHER)
-            setScope(SCOPE_REGISTRY_CATALOG_ALL)
-            setAudience(AUDIENCE_USER, AUDIENCE_EDITOR)
-            assertContainsOneAccessItemWithActions(ACTION_ALL)
-        }
-
-        @Test
-        internal fun admin_namespace_groups_on_registry_catalog_scope_all_audience_editor() {
-            setGroups(GROUP_NAMESPACE)
-            setScope(SCOPE_REGISTRY_CATALOG_ALL)
-            setAudience(AUDIENCE_USER, AUDIENCE_EDITOR)
-            assertContainsOneAccessItemWithActions(ACTION_ALL)
-        }
-    }
-
-    @Nested
     inner class DefaultRepositoryNoGroupsTests {
 
         @Test

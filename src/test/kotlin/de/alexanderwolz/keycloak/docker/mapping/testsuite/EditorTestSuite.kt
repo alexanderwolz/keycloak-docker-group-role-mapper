@@ -6,6 +6,7 @@ import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerSc
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_PUSH
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.AUDIENCE_EDITOR
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.AUDIENCE_USER
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.NAMESPACE_SCOPE_DOMAIN
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.NAMESPACE_SCOPE_GROUP
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.NAMESPACE_SCOPE_USERNAME
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ROLE_EDITOR
@@ -124,33 +125,6 @@ class EditorTestSuite : AbstractScopeMapperTestSuite() {
             setGroups(GROUP_NAMESPACE)
             setScope(SCOPE_REGISTRY_CATALOG_ALL)
             setAudience(AUDIENCE_EDITOR)
-            assertContainsOneAccessItemWithActions(ACTION_ALL)
-        }
-    }
-
-    @Nested
-    inner class RegistryCatalogScopeForAudienceUserAndEditorTests {
-
-        @Test
-        internal fun editor_no_groups_on_registry_catalog_scope_all_audience_user_and_editor() {
-            setScope(SCOPE_REGISTRY_CATALOG_ALL)
-            setAudience(AUDIENCE_USER, AUDIENCE_EDITOR)
-            assertContainsOneAccessItemWithActions(ACTION_ALL)
-        }
-
-        @Test
-        internal fun editor_other_groups_on_registry_catalog_scope_all_audience_user_and_editor() {
-            setGroups(GROUP_NAMESPACE_OTHER)
-            setScope(SCOPE_REGISTRY_CATALOG_ALL)
-            setAudience(AUDIENCE_USER, AUDIENCE_EDITOR)
-            assertContainsOneAccessItemWithActions(ACTION_ALL)
-        }
-
-        @Test
-        internal fun editor_namespace_groups_on_registry_catalog_scope_all_audience_editor() {
-            setGroups(GROUP_NAMESPACE)
-            setScope(SCOPE_REGISTRY_CATALOG_ALL)
-            setAudience(AUDIENCE_USER, AUDIENCE_EDITOR)
             assertContainsOneAccessItemWithActions(ACTION_ALL)
         }
     }
@@ -498,6 +472,131 @@ class EditorTestSuite : AbstractScopeMapperTestSuite() {
             setGroups(GROUP_NAMESPACE)
             setScope(SCOPE_REPO_NAMESPACE_PULL_PUSH)
             setNamespaceScope(NAMESPACE_SCOPE_USERNAME)
+            assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH)
+        }
+    }
+
+    @Nested
+    inner class NamespaceRepositoryNoGroupsWithEmailScopeTests {
+        @Test
+        internal fun editor_no_groups_on_repository_scope_all_namespace_domain() {
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_ALL)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH, ACTION_DELETE)
+        }
+
+        @Test
+        internal fun editor_no_groups_on_repository_scope_pull_namespace_domain() {
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PULL)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun editor_no_groups_on_repository_scope_push_namespace_domain() {
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PUSH)
+        }
+
+        @Test
+        internal fun editor_no_groups_on_repository_scope_delete_namespace_domain() {
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_DELETE)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_DELETE)
+        }
+
+        @Test
+        internal fun editor_no_groups_on_repository_scope_pull_push_namespace_domain() {
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PULL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH)
+        }
+    }
+
+    @Nested
+    inner class NamespaceRepositoryOtherGroupsWithEmailScopeTests {
+        @Test
+        internal fun editor_other_groups_on_repository_scope_all_namespace_domain() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_ALL)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH, ACTION_DELETE)
+        }
+
+        @Test
+        internal fun editor_other_groups_on_repository_scope_pull_namespace_domain() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PULL)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun editor_other_groups_on_repository_scope_push_namespace_domain() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PUSH)
+        }
+
+        @Test
+        internal fun editor_other_groups_on_repository_scope_delete_namespace_domain() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_DELETE)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_DELETE)
+        }
+
+        @Test
+        internal fun editor_other_groups_on_repository_scope_pull_push_namespace_domain() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PULL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH)
+        }
+    }
+
+    @Nested
+    inner class NamespaceRepositoryNamespaceGroupsWithEmailScopeTests {
+
+        @Test
+        internal fun editor_namespace_groups_on_repository_scope_all_namespace_domain() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_ALL)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH, ACTION_DELETE)
+        }
+
+        @Test
+        internal fun editor_namespace_groups_on_repository_scope_pull_namespace_domain() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PULL)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun editor_namespace_groups_on_repository_scope_push_namespace_domain() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PUSH)
+        }
+
+        @Test
+        internal fun editor_namespace_groups_on_repository_scope_delete_namespace_domain() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_DELETE)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_DELETE)
+        }
+
+        @Test
+        internal fun editor_namespace_groups_on_repository_scope_pull_push_namespace_domain() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_DOMAIN_PULL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_DOMAIN)
             assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH)
         }
     }

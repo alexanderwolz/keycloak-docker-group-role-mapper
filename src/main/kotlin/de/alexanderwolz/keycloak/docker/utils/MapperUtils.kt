@@ -15,7 +15,7 @@ class MapperUtils {
     companion object {
 
         fun getClientRoleNames(user: UserModel, client: ClientModel): Collection<String> {
-            return user.getClientRoleMappingsStream(client).map { it.name.lowercase() }.toList()
+            return user.getClientRoleMappingsStream(client).map { it.name }.toList()
         }
 
         fun getUserNamespacesFromGroups(user: UserModel): Collection<String> {
@@ -66,8 +66,7 @@ class MapperUtils {
             clientRoleNames: Collection<String>,
         ): List<String> {
             val allowedActions = ArrayList<String>()
-            val shallAddPrivilegedActions =
-                clientRoleNames.contains(ROLE_EDITOR)
+            val shallAddPrivilegedActions = clientRoleNames.contains(ROLE_EDITOR)
             substituteRequestedActions(requestedActions).forEach { action ->
                 if (ACTION_PUSH == action && shallAddPrivilegedActions) {
                     allowedActions.add(action)

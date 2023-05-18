@@ -17,8 +17,8 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
 
     private val logger = Logger.getLogger(javaClass.simpleName)
 
-    internal val catalogAudience = HashSet<String>()
-    internal val namespaceScope = HashSet<String>()
+    internal var catalogAudience = getCatalogAudienceFromEnv()
+    internal var namespaceScope = getNamespaceScopeFromEnv()
 
     override fun getId(): String {
         return PROVIDER_ID
@@ -95,7 +95,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
     ): DockerResponseToken {
         if (accessItem.name == NAME_CATALOG) {
             if (isAllowedToAccessRegistryCatalogScope(clientRoleNames)) {
-                val reason = "Allowed by catalog audience '${catalogAudience.joinToString()}'"
+                val reason = "Allowed by catalog audience '$catalogAudience'"
                 return allowAll(responseToken, accessItem, user, reason)
             }
             val reason = if (clientRoleNames.contains(ROLE_EDITOR)) {
@@ -111,8 +111,8 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
     }
 
     private fun isAllowedToAccessRegistryCatalogScope(clientRoleNames: Collection<String>): Boolean {
-        return catalogAudience.contains(AUDIENCE_USER)
-                || (catalogAudience.contains(AUDIENCE_EDITOR) && clientRoleNames.contains(ROLE_EDITOR))
+        return catalogAudience == AUDIENCE_USER
+                || (catalogAudience == AUDIENCE_EDITOR && clientRoleNames.contains(ROLE_EDITOR))
     }
 
     private fun getScopeFromSession(clientSession: AuthenticatedClientSessionModel): String? {
@@ -171,13 +171,11 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         user: UserModel,
         reason: String = ""
     ): DockerResponseToken {
-        if (logger.isDebugEnabled) {
-            var message = "Access denied for user '${user.username}' on scope '${accessItem.scope}'"
-            if (reason.isNotEmpty()) {
-                message += ": $reason"
-            }
-            logger.debug(message)
+        var message = "Access denied for user '${user.username}' on scope '${accessItem.scope}'"
+        if (reason.isNotEmpty()) {
+            message += ": $reason"
         }
+        logger.warn(message)
         return responseToken
     }
 
@@ -198,7 +196,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
             return allowWithActions(responseToken, accessItem, allowedActions, user, "Accessing user's own namespace")
         }
 
-        if (namespaceScope.contains(NAMESPACE_SCOPE_EMAIL_DOMAIN) && isEmailDomainRepository(namespace, user.email)) {
+        if (namespaceScope.contains(NAMESPACE_SCOPE_DOMAIN) && isEmailDomainRepository(namespace, user.email)) {
             return handleNamespaceRepositoryAccess(responseToken, accessItem, clientRoleNames, user)
         }
 
@@ -252,32 +250,40 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         return namespace == MapperUtils.getDomainFromEmail(email)
     }
 
-    private val environment: Map<String, String> = try {
-        System.getenv()
-    } catch (e: Exception) {
-        logger.error("Could not access System Environment", e)
-        emptyMap()
+    private fun getEnv(key: String): String? {
+        return try {
+            System.getenv()[key]
+        } catch (e: Exception) {
+            logger.error("Could not access System Environment", e)
+            null
+        }
     }
 
-    init {
-        environment[KEY_REGISTRY_CATALOG_AUDIENCE]?.let { audienceString ->
-            val configValues = audienceString.split(",")
-            catalogAudience.addAll(configValues.map { it.lowercase() }.filter {
-                it == AUDIENCE_USER || it == AUDIENCE_EDITOR
-            })
-        } ?: catalogAudience.clear()
 
-        environment[KEY_REGISTRY_NAMESPACE]?.let { scopeString ->
-            val configValues = scopeString.split(",")
-            namespaceScope.addAll(configValues.map { it.lowercase() }.filter {
-                it == NAMESPACE_SCOPE_GROUP || it == NAMESPACE_SCOPE_USERNAME || it == NAMESPACE_SCOPE_EMAIL_DOMAIN
-            })
-            if (namespaceScope.isEmpty()) {
-                logger.warn("Empty or unsupported config values for \$$KEY_REGISTRY_NAMESPACE: $scopeString")
-                logger.warn("Resetting \$$KEY_REGISTRY_NAMESPACE to default: $NAMESPACE_SCOPE_DEFAULT")
-                namespaceScope.addAll(NAMESPACE_SCOPE_DEFAULT)
+    private fun getCatalogAudienceFromEnv(): String {
+        return getEnv(KEY_REGISTRY_CATALOG_AUDIENCE)?.let {
+            val audienceString = it.lowercase()
+            if (audienceString == AUDIENCE_USER) {
+                AUDIENCE_USER
             }
-        } ?: namespaceScope.addAll(NAMESPACE_SCOPE_DEFAULT)
+            if (audienceString == AUDIENCE_EDITOR) {
+                AUDIENCE_EDITOR
+            }
+            AUDIENCE_ADMIN
+        } ?: AUDIENCE_ADMIN
+    }
+
+    private fun getNamespaceScopeFromEnv(): Set<String> {
+        return getEnv(KEY_REGISTRY_NAMESPACE_SCOPE)?.let { scopeString ->
+            val scopes = scopeString.split(",").map { it.lowercase() }
+                .filter { it == NAMESPACE_SCOPE_GROUP || it == NAMESPACE_SCOPE_USERNAME || it == NAMESPACE_SCOPE_DOMAIN }
+            if (scopes.isEmpty()) {
+                logger.warn("Empty or unsupported config values for \$$KEY_REGISTRY_NAMESPACE_SCOPE: $scopeString")
+                logger.warn("Resetting \$$KEY_REGISTRY_NAMESPACE_SCOPE to default: $NAMESPACE_SCOPE_DEFAULT")
+                NAMESPACE_SCOPE_DEFAULT
+            }
+            scopes.toSet()
+        } ?: NAMESPACE_SCOPE_DEFAULT
     }
 
     companion object {
@@ -296,12 +302,12 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : DockerAuthV2ProtocolMapper(), 
         internal const val KEY_REGISTRY_CATALOG_AUDIENCE = "REGISTRY_CATALOG_AUDIENCE"
         internal const val AUDIENCE_USER = ROLE_USER
         internal const val AUDIENCE_EDITOR = ROLE_EDITOR
+        internal const val AUDIENCE_ADMIN = ROLE_ADMIN
 
-        //can be 'username' or 'group', 'email_domain' or all separated by ','
-        internal const val KEY_REGISTRY_NAMESPACE = "REGISTRY_NAMESPACE_SCOPE"
+        internal const val KEY_REGISTRY_NAMESPACE_SCOPE = "REGISTRY_NAMESPACE_SCOPE"
         internal const val NAMESPACE_SCOPE_USERNAME = "username"
         internal const val NAMESPACE_SCOPE_GROUP = "group"
-        internal const val NAMESPACE_SCOPE_EMAIL_DOMAIN = "email"
+        internal const val NAMESPACE_SCOPE_DOMAIN = "domain"
         internal val NAMESPACE_SCOPE_DEFAULT = setOf(NAMESPACE_SCOPE_GROUP)
 
         //see also https://docs.docker.com/registry/spec/auth/scope/

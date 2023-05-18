@@ -20,12 +20,11 @@ abstract class AbstractScopeMapperTestSuite {
     companion object {
         private const val CLIENT_ID = "registry"
         private const val USER_NAME = "Johnny"
-        private const val USER_EMAIL = "john.doe@company.com"
+        private const val USER_EMAIL = "john.doe@johnny.com"
         private const val IMAGE = "image"
 
-        //must be username in case we set the namespace scope 'username' flag
         private const val NAMESPACE = "johnny"
-        private const val NAMESPACE_EMAIL = "company.com"
+        private const val NAMESPACE_DOMAIN = "johnny.com"
 
         // scopes can either be registry, repository or repository(plugin)
         const val SCOPE_REGISTRY_CATALOG_ALL = "registry:catalog:*"
@@ -43,11 +42,11 @@ abstract class AbstractScopeMapperTestSuite {
         const val SCOPE_REPO_NAMESPACE_DELETE = "repository:$NAMESPACE/$IMAGE:delete"
         const val SCOPE_REPO_NAMESPACE_PULL_PUSH = "repository:$NAMESPACE/$IMAGE:pull,push"
 
-        const val SCOPE_REPO_NAMESPACE_EMAIL_ALL = "repository:$NAMESPACE_EMAIL/$IMAGE:*"
-        const val SCOPE_REPO_NAMESPACE_EMAIL_PULL = "repository:$NAMESPACE_EMAIL/$IMAGE:pull"
-        const val SCOPE_REPO_NAMESPACE_EMAIL_PUSH = "repository:$NAMESPACE_EMAIL/$IMAGE:push"
-        const val SCOPE_REPO_NAMESPACE_EMAIL_DELETE = "repository:$NAMESPACE_EMAIL/$IMAGE:delete"
-        const val SCOPE_REPO_NAMESPACE_EMAIL_PULL_PUSH = "repository:$NAMESPACE_EMAIL/$IMAGE:pull,push"
+        const val SCOPE_REPO_NAMESPACE_DOMAIN_ALL = "repository:$NAMESPACE_DOMAIN/$IMAGE:*"
+        const val SCOPE_REPO_NAMESPACE_DOMAIN_PULL = "repository:$NAMESPACE_DOMAIN/$IMAGE:pull"
+        const val SCOPE_REPO_NAMESPACE_DOMAIN_PUSH = "repository:$NAMESPACE_DOMAIN/$IMAGE:push"
+        const val SCOPE_REPO_NAMESPACE_DOMAIN_DELETE = "repository:$NAMESPACE_DOMAIN/$IMAGE:delete"
+        const val SCOPE_REPO_NAMESPACE_DOMAIN_PULL_PUSH = "repository:$NAMESPACE_DOMAIN/$IMAGE:pull,push"
 
         const val SCOPE_REPO_PLUGIN_DEFAULT_ALL = "repository(plugin):$IMAGE:*"
         const val SCOPE_REPO_PLUGIN_DEFAULT_PULL = "repository(plugin):$IMAGE:pull"
@@ -61,11 +60,11 @@ abstract class AbstractScopeMapperTestSuite {
         const val SCOPE_REPO_PLUGIN_NAMESPACE_DELETE = "repository(plugin):$NAMESPACE/$IMAGE:delete"
         const val SCOPE_REPO_PLUGIN_NAMESPACE_PULL_PUSH = "repository(plugin):$NAMESPACE/$IMAGE:pull,push"
 
-        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_ALL = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:*"
-        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_PULL = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:pull"
-        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_PUSH = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:push"
-        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_DELETE = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:delete"
-        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_PULL_PUSH = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:pull,push"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_DOMAIN_ALL = "repository(plugin):$NAMESPACE_DOMAIN/$IMAGE:*"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_DOMAIN_PULL = "repository(plugin):$NAMESPACE_DOMAIN/$IMAGE:pull"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_DOMAIN_PUSH = "repository(plugin):$NAMESPACE_DOMAIN/$IMAGE:push"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_DOMAIN_DELETE = "repository(plugin):$NAMESPACE_DOMAIN/$IMAGE:delete"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_DOMAIN_PULL_PUSH = "repository(plugin):$NAMESPACE_DOMAIN/$IMAGE:pull,push"
 
         const val GROUP_NAMESPACE = "${KeycloakGroupsAndRolesToDockerScopeMapper.GROUP_PREFIX}$NAMESPACE"
         const val GROUP_NAMESPACE_OTHER = "${KeycloakGroupsAndRolesToDockerScopeMapper.GROUP_PREFIX}otherNamespace"
@@ -142,14 +141,12 @@ abstract class AbstractScopeMapperTestSuite {
         assertEquals(actualScope, clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM))
     }
 
-    protected fun setAudience(vararg audience: String) {
-        mapper.catalogAudience.clear()
-        mapper.catalogAudience.addAll(audience)
+    protected fun setAudience(audience: String) {
+        mapper.catalogAudience = audience
     }
 
     protected fun setNamespaceScope(vararg namespaceScope: String) {
-        mapper.namespaceScope.clear()
-        mapper.namespaceScope.addAll(namespaceScope)
+        mapper.namespaceScope = namespaceScope.toSet()
     }
 
     protected fun assertEmptyAccessItems(actualToken: DockerResponseToken = transformDockerResponseToken()) {
