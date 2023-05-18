@@ -20,10 +20,12 @@ abstract class AbstractScopeMapperTestSuite {
     companion object {
         private const val CLIENT_ID = "registry"
         private const val USER_NAME = "Johnny"
+        private const val USER_EMAIL = "john.doe@company.com"
         private const val IMAGE = "image"
 
         //must be username in case we set the namespace scope 'username' flag
         private const val NAMESPACE = "johnny"
+        private const val NAMESPACE_EMAIL = "company.com"
 
         // scopes can either be registry, repository or repository(plugin)
         const val SCOPE_REGISTRY_CATALOG_ALL = "registry:catalog:*"
@@ -41,6 +43,12 @@ abstract class AbstractScopeMapperTestSuite {
         const val SCOPE_REPO_NAMESPACE_DELETE = "repository:$NAMESPACE/$IMAGE:delete"
         const val SCOPE_REPO_NAMESPACE_PULL_PUSH = "repository:$NAMESPACE/$IMAGE:pull,push"
 
+        const val SCOPE_REPO_NAMESPACE_EMAIL_ALL = "repository:$NAMESPACE_EMAIL/$IMAGE:*"
+        const val SCOPE_REPO_NAMESPACE_EMAIL_PULL = "repository:$NAMESPACE_EMAIL/$IMAGE:pull"
+        const val SCOPE_REPO_NAMESPACE_EMAIL_PUSH = "repository:$NAMESPACE_EMAIL/$IMAGE:push"
+        const val SCOPE_REPO_NAMESPACE_EMAIL_DELETE = "repository:$NAMESPACE_EMAIL/$IMAGE:delete"
+        const val SCOPE_REPO_NAMESPACE_EMAIL_PULL_PUSH = "repository:$NAMESPACE_EMAIL/$IMAGE:pull,push"
+
         const val SCOPE_REPO_PLUGIN_DEFAULT_ALL = "repository(plugin):$IMAGE:*"
         const val SCOPE_REPO_PLUGIN_DEFAULT_PULL = "repository(plugin):$IMAGE:pull"
         const val SCOPE_REPO_PLUGIN_DEFAULT_PUSH = "repository(plugin):$IMAGE:push"
@@ -53,19 +61,11 @@ abstract class AbstractScopeMapperTestSuite {
         const val SCOPE_REPO_PLUGIN_NAMESPACE_DELETE = "repository(plugin):$NAMESPACE/$IMAGE:delete"
         const val SCOPE_REPO_PLUGIN_NAMESPACE_PULL_PUSH = "repository(plugin):$NAMESPACE/$IMAGE:pull,push"
 
-        const val AUDIENCE_USER = KeycloakGroupsAndRolesToDockerScopeMapper.ROLE_USER
-        const val AUDIENCE_EDITOR = KeycloakGroupsAndRolesToDockerScopeMapper.ROLE_EDITOR
-
-        const val NAMESPACE_SCOPE_USERNAME = KeycloakGroupsAndRolesToDockerScopeMapper.NAMESPACE_SCOPE_USERNAME
-        const val NAMESPACE_SCOPE_GROUP = KeycloakGroupsAndRolesToDockerScopeMapper.NAMESPACE_SCOPE_GROUP
-
-        const val ROLE_EDITOR = KeycloakGroupsAndRolesToDockerScopeMapper.ROLE_EDITOR
-        const val ROLE_ADMIN = KeycloakGroupsAndRolesToDockerScopeMapper.ROLE_ADMIN
-
-        const val ACTION_PULL = KeycloakGroupsAndRolesToDockerScopeMapper.ACTION_PULL
-        const val ACTION_PUSH = KeycloakGroupsAndRolesToDockerScopeMapper.ACTION_PUSH
-        const val ACTION_DELETE = KeycloakGroupsAndRolesToDockerScopeMapper.ACTION_DELETE
-        internal const val ACTION_ALL = KeycloakGroupsAndRolesToDockerScopeMapper.ACTION_ALL
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_ALL = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:*"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_PULL = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:pull"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_PUSH = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:push"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_DELETE = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:delete"
+        const val SCOPE_REPO_PLUGIN_NAMESPACE_EMAIL_PULL_PUSH = "repository(plugin):$NAMESPACE_EMAIL/$IMAGE:pull,push"
 
         const val GROUP_NAMESPACE = "${KeycloakGroupsAndRolesToDockerScopeMapper.GROUP_PREFIX}$NAMESPACE"
         const val GROUP_NAMESPACE_OTHER = "${KeycloakGroupsAndRolesToDockerScopeMapper.GROUP_PREFIX}otherNamespace"
@@ -107,6 +107,7 @@ abstract class AbstractScopeMapperTestSuite {
 
         userModel = Mockito.mock(UserModel::class.java)
         given(userModel.username).willReturn(USER_NAME)
+        given(userModel.email).willReturn(USER_EMAIL)
 
         clientModel = Mockito.mock(ClientModel::class.java)
         given(clientModel.clientId).willReturn(CLIENT_ID)
@@ -153,7 +154,6 @@ abstract class AbstractScopeMapperTestSuite {
 
     protected fun assertEmptyAccessItems(actualToken: DockerResponseToken = transformDockerResponseToken()) {
         assertEquals(0, actualToken.accessItems.size)
-        //logger.debug("Passed ${object {}.javaClass.enclosingMethod.name}")
     }
 
     protected fun assertContainsOneAccessItemWithActions(
@@ -162,7 +162,6 @@ abstract class AbstractScopeMapperTestSuite {
     ) {
         assertEquals(1, actualToken.accessItems.size)
         assertEquals(expectedActions.sorted(), actualToken.accessItems.first().actions.sorted())
-        //logger.debug("Passed ${object {}.javaClass.enclosingMethod.name}")
     }
 
 

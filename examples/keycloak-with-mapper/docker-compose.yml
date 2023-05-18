@@ -1,6 +1,21 @@
 version: "3.9"
 services:
 
+  registry:
+    container_name: registry
+    image: registry:2.8.2
+    restart: unless-stopped
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+      REGISTRY_AUTH_TOKEN_SERVICE: myregistry
+      REGISTRY_AUTH_TOKEN_REALM: http://localhost:8080/realms/myrealm/protocol/docker-v2/auth
+      REGISTRY_AUTH_TOKEN_ISSUER: http://localhost:8080/realms/myrealm
+      REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE: /opt/certs/localhost_trust_chain.pem
+    volumes:
+      - certs:/opt/certs/:ro # certs from registry client export in keycloak
+    networks:
+      - registry
+
   database:
     container_name: database
     image: mariadb:10.9.5
@@ -39,6 +54,8 @@ services:
         - database
     networks:
       - database
+      - registry
 
 networks:
   database:
+  registry:

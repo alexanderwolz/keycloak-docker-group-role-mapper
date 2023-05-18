@@ -1,5 +1,14 @@
 package de.alexanderwolz.keycloak.docker.mapping.testsuite
 
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_ALL
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_DELETE
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_PULL
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_PUSH
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.AUDIENCE_EDITOR
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.AUDIENCE_USER
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.NAMESPACE_SCOPE_EMAIL_DOMAIN
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.NAMESPACE_SCOPE_GROUP
+import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.NAMESPACE_SCOPE_USERNAME
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
@@ -496,6 +505,131 @@ class UserTestSuite : AbstractScopeMapperTestSuite() {
             setScope(SCOPE_REPO_NAMESPACE_PULL_PUSH)
             setNamespaceScope(NAMESPACE_SCOPE_USERNAME)
             assertContainsOneAccessItemWithActions(ACTION_PULL, ACTION_PUSH)
+        }
+    }
+
+    @Nested
+    inner class NamespaceRepositoryNoGroupsWithEmailScopeTests {
+        @Test
+        internal fun user_no_groups_on_repository_scope_all_namespace_email() {
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_ALL)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun user_no_groups_on_repository_scope_pull_namespace_email() {
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PULL)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun user_no_groups_on_repository_scope_push_namespace_email() {
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertEmptyAccessItems()
+        }
+
+        @Test
+        internal fun user_no_groups_on_repository_scope_delete_namespace_email() {
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_DELETE)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertEmptyAccessItems()
+        }
+
+        @Test
+        internal fun user_no_groups_on_repository_scope_pull_push_namespace_email() {
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PULL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+    }
+
+    @Nested
+    inner class NamespaceRepositoryOtherGroupsWithEmailScopeTests {
+        @Test
+        internal fun user_other_groups_on_repository_scope_all_namespace_email() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_ALL)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun user_other_groups_on_repository_scope_pull_namespace_email() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_PULL)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertEmptyAccessItems()
+        }
+
+        @Test
+        internal fun user_other_groups_on_repository_scope_push_namespace_email() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertEmptyAccessItems()
+        }
+
+        @Test
+        internal fun user_other_groups_on_repository_scope_delete_namespace_email() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_DELETE)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertEmptyAccessItems()
+        }
+
+        @Test
+        internal fun user_other_groups_on_repository_scope_pull_push_namespace_email() {
+            setGroups(GROUP_NAMESPACE_OTHER)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PULL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+    }
+
+    @Nested
+    inner class NamespaceRepositoryNamespaceGroupsWithEmailScopeTests {
+
+        @Test
+        internal fun user_namespace_groups_on_repository_scope_all_namespace_email() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_ALL)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun user_namespace_groups_on_repository_scope_pull_namespace_email() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PULL)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
+        }
+
+        @Test
+        internal fun user_namespace_groups_on_repository_scope_push_namespace_email() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertEmptyAccessItems()
+        }
+
+        @Test
+        internal fun user_namespace_groups_on_repository_scope_delete_namespace_email() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_DELETE)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertEmptyAccessItems()
+        }
+
+        @Test
+        internal fun user_namespace_groups_on_repository_scope_pull_push_namespace_email() {
+            setGroups(GROUP_NAMESPACE)
+            setScope(SCOPE_REPO_NAMESPACE_EMAIL_PULL_PUSH)
+            setNamespaceScope(NAMESPACE_SCOPE_EMAIL_DOMAIN)
+            assertContainsOneAccessItemWithActions(ACTION_PULL)
         }
     }
 
