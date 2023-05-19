@@ -1,9 +1,9 @@
 package de.alexanderwolz.keycloak.docker.mapping.testsuite
 
-import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_ALL
-import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_DELETE
-import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_PULL
-import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.ACTION_PUSH
+import de.alexanderwolz.keycloak.docker.mapping.AbstractDockerScopeMapper.Companion.ACTION_ALL
+import de.alexanderwolz.keycloak.docker.mapping.AbstractDockerScopeMapper.Companion.ACTION_DELETE
+import de.alexanderwolz.keycloak.docker.mapping.AbstractDockerScopeMapper.Companion.ACTION_PULL
+import de.alexanderwolz.keycloak.docker.mapping.AbstractDockerScopeMapper.Companion.ACTION_PUSH
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.AUDIENCE_EDITOR
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.AUDIENCE_USER
 import de.alexanderwolz.keycloak.docker.mapping.KeycloakGroupsAndRolesToDockerScopeMapper.Companion.NAMESPACE_SCOPE_DOMAIN
