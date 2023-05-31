@@ -28,6 +28,7 @@ abstract class AbstractDockerScopeMapper(
         const val ACCESS_TYPE_REGISTRY = "registry"
         const val ACCESS_TYPE_REPOSITORY = "repository"
         const val ACCESS_TYPE_REPOSITORY_PLUGIN = "repository(plugin)"
+
     }
 
     internal val logger: Logger = Logger.getLogger(javaClass.simpleName)
@@ -117,8 +118,9 @@ abstract class AbstractDockerScopeMapper(
     }
 
     internal fun getNamespaceFromRepositoryName(repositoryName: String): String? {
+        //namespace can be followed of sub-namespaces (segments) divided by / (slash)
         val parts = repositoryName.split("/")
-        if (parts.size == 2) {
+        if (parts.size > 1) {
             return parts[0].lowercase()
         }
         return null

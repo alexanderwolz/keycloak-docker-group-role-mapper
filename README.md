@@ -4,7 +4,7 @@
 ![GitHub](https://img.shields.io/badge/keycloak-21.1.1-orange)
 ![GitHub](https://img.shields.io/badge/registry-2.8.2-orange)
 ![GitHub](https://img.shields.io/github/license/alexanderwolz/keycloak-docker-group-role-mapper)
-![GitHub](https://img.shields.io/badge/test_cases-624-informational)
+![GitHub](https://img.shields.io/badge/test_cases-626-informational)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/alexanderwolz/keycloak-docker-group-role-mapper)
 ![GitHub all releases](https://img.shields.io/github/downloads/alexanderwolz/keycloak-docker-group-role-mapper/total?color=informational)
 
