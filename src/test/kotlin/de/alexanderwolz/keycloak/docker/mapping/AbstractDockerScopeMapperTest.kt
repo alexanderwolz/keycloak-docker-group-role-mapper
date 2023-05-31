@@ -26,8 +26,27 @@ internal class AbstractDockerScopeMapperTest {
     }
 
     @Test
-    fun testGetScopeFromSession() {
+    fun testGetRegistryCatalogScopeFromSession() {
         val expectedScope = "registry:catalog:*"
+        val clientSession = Mockito.mock(AuthenticatedClientSessionModel::class.java)
+        given(clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)).willReturn(expectedScope)
+        val scopes = mapper.getScopesFromSession(clientSession)
+        assertEquals(1, scopes.size)
+        assertEquals(expectedScope, scopes.first())
+    }
+
+    @Test
+    fun testGetRepositoryScopeFromSession() {
+        val expectedScope = "repository:image:pull,push,delete"
+        val clientSession = Mockito.mock(AuthenticatedClientSessionModel::class.java)
+        given(clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)).willReturn(expectedScope)
+        val scopes = mapper.getScopesFromSession(clientSession)
+        assertEquals(1, scopes.size)
+        assertEquals(expectedScope, scopes.first())
+    }
+    @Test
+    fun testGetRepositoryScopeWithNamespaceFromSession() {
+        val expectedScope = "repository:john/image:pull,push,delete"
         val clientSession = Mockito.mock(AuthenticatedClientSessionModel::class.java)
         given(clientSession.getNote(DockerAuthV2Protocol.SCOPE_PARAM)).willReturn(expectedScope)
         val scopes = mapper.getScopesFromSession(clientSession)
@@ -190,8 +209,9 @@ internal class AbstractDockerScopeMapperTest {
 
     @Test
     fun testGetNamespaceFromRepositoryName() {
-        val namespace = mapper.getNamespaceFromRepositoryName("company/image")
-        assertEquals("company", namespace)
+        val expectedNamespace = "company"
+        val namespace = mapper.getNamespaceFromRepositoryName("$expectedNamespace/image")
+        assertEquals(expectedNamespace, namespace)
     }
 
     @Test
@@ -201,9 +221,11 @@ internal class AbstractDockerScopeMapperTest {
     }
 
     @Test
-    fun testGetNamespaceFromRepositoryNameWithWrongSyntax() {
-        val namespace = mapper.getNamespaceFromRepositoryName("company/sub/image")
-        assertNull(namespace)
+    fun testGetNamespaceFromRepositoryNameWithNamespaceAndSegments() {
+        val expectedNamespace = "company.com"
+        val repositoryName = "$expectedNamespace/project1/teamA"
+        val namespace = mapper.getNamespaceFromRepositoryName(repositoryName)
+        assertEquals(expectedNamespace, namespace)
     }
 
     @Test

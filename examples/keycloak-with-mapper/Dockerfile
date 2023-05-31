@@ -1,6 +1,6 @@
 ARG ALPINE_VERSION="3.18.0"
 ARG KEYCLOAK_VERSION="21.1.1"
-ARG MAPPER_VERSION="1.3.1"
+ARG MAPPER_VERSION="1.3.2"
 ARG MAPPER_LIB="keycloak-docker-group-role-mapper-${MAPPER_VERSION}.jar"
 
 # stage 1: mapper build
