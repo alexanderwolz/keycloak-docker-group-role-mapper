@@ -41,6 +41,10 @@ This mapper supports following environment variables (either set on server or in
 
 Keycloak must be setup to have a docker-v2 registry client, roles and optional groups. The registry then must be configured to use OIDC configuration provided by Keycloak
 
+### Enable Docker v2 Protocol Feature
+1. In order to use the Docker v2 protocol, the feature ```docker``` must be enabled during Keycloak server startup.
+2. This can be done by setting the environment variable ```KC_FEATURES=docker,token-exchange```.
+
 ### Create Registry Client Configuration
 1. Go to realm and choose "Clients" section
 2. Create new client by clicking "Create client"
