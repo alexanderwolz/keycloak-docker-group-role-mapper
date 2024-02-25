@@ -66,8 +66,8 @@ abstract class AbstractScopeMapperTestSuite {
         const val SCOPE_REPO_PLUGIN_NAMESPACE_DOMAIN_DELETE = "repository(plugin):$NAMESPACE_DOMAIN/$IMAGE:delete"
         const val SCOPE_REPO_PLUGIN_NAMESPACE_DOMAIN_PULL_PUSH = "repository(plugin):$NAMESPACE_DOMAIN/$IMAGE:pull,push"
 
-        const val GROUP_NAMESPACE = "${KeycloakGroupsAndRolesToDockerScopeMapper.GROUP_PREFIX}$NAMESPACE"
-        const val GROUP_NAMESPACE_OTHER = "${KeycloakGroupsAndRolesToDockerScopeMapper.GROUP_PREFIX}otherNamespace"
+        const val GROUP_NAMESPACE = "${KeycloakGroupsAndRolesToDockerScopeMapper.DEFAULT_GROUP_PREFIX}$NAMESPACE"
+        const val GROUP_NAMESPACE_OTHER = "${KeycloakGroupsAndRolesToDockerScopeMapper.DEFAULT_GROUP_PREFIX}otherNamespace"
     }
 
     private val logger = Logger.getLogger(javaClass)
@@ -86,16 +86,16 @@ abstract class AbstractScopeMapperTestSuite {
     private lateinit var clientSession: AuthenticatedClientSessionModel
 
     @BeforeTest
-    private fun logCurrentTestMethodName(info: TestInfo) {
+    fun logCurrentTestMethodName(info: TestInfo) {
         logger.info("** TEST: ${info.displayName.split("$").first()}")
     }
 
     @AfterTest
-    private fun logEmptyLine() = logger.info("")
+    fun logEmptyLine(): Unit = logger.info("")
 
     @Test
     @BeforeEach
-    private fun setUp() {
+    fun setUp() {
 
         mapper = KeycloakGroupsAndRolesToDockerScopeMapper()
 

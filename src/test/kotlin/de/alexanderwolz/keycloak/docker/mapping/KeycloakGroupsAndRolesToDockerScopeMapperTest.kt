@@ -9,6 +9,7 @@ import org.keycloak.models.GroupModel
 import org.keycloak.models.UserModel
 import org.mockito.Mockito
 import org.mockito.kotlin.given
+import java.util.stream.Stream
 import kotlin.test.assertEquals
 
 internal class KeycloakGroupsAndRolesToDockerScopeMapperTest {
@@ -16,13 +17,82 @@ internal class KeycloakGroupsAndRolesToDockerScopeMapperTest {
     private val mapper = KeycloakGroupsAndRolesToDockerScopeMapper()
 
     @Test
-    fun testGetUserNamespacesFromGroups() {
+    fun testGetUserNamespacesFromEmptyGroups() {
         val user = Mockito.mock(UserModel::class.java)
-        val groupNames = setOf("${KeycloakGroupsAndRolesToDockerScopeMapper.GROUP_PREFIX}company", "otherGroup")
+        given(user.groupsStream).willAnswer {
+            Stream.empty<GroupModel>()
+        }
+        val actualGroupNames = mapper.getUserNamespacesFromGroups(user)
+        assertEquals(0, actualGroupNames.size)
+    }
+
+    @Test
+    fun testGetUserNamespacesFromGroupsAndSubgroups() {
+        val user = Mockito.mock(UserModel::class.java)
+        val groupWithPrefixSubgroup = "parentWithPrefixSubgroup"
+        val groupNames = setOf("${mapper.groupPrefix}company", "otherGroup", groupWithPrefixSubgroup)
+        val subgroupNames = setOf("${mapper.groupPrefix}subgroup", "otherSubgroup")
         given(user.groupsStream).willAnswer {
             groupNames.map { groupName ->
-                Mockito.mock(GroupModel::class.java).also {
-                    given(it.name).willReturn(groupName)
+                Mockito.mock(GroupModel::class.java).also { parentGroup ->
+                    given(parentGroup.name).willReturn(groupName)
+                    if (groupName == groupWithPrefixSubgroup) {
+                        given(parentGroup.subGroupsStream).willAnswer {
+                            subgroupNames.map { subgroupName ->
+                                Mockito.mock(GroupModel::class.java).also { childGroup ->
+                                    given(childGroup.name).willReturn(subgroupName)
+                                }
+                            }.stream()
+                        }
+                    }
+                }
+            }.stream()
+        }
+        val expectedGroupNames = setOf("company", "subgroup")
+        val actualGroupNames = mapper.getUserNamespacesFromGroups(user)
+        assertEquals(expectedGroupNames.sorted(), actualGroupNames.sorted())
+    }
+
+    @Test
+    fun testGetUserNamespacesFromSubgroupsOnly() {
+        val user = Mockito.mock(UserModel::class.java)
+        val groupWithPrefixSubgroup = "parentWithPrefixSubgroup"
+        val groupNames = setOf("otherGroup1", "otherGroup2", groupWithPrefixSubgroup)
+        val subgroupNames = setOf("${mapper.groupPrefix}subgroup1", "${mapper.groupPrefix}subgroup2", "otherSubgroup")
+        given(user.groupsStream).willAnswer {
+            groupNames.map { groupName ->
+                Mockito.mock(GroupModel::class.java).also { parentGroup ->
+                    given(parentGroup.name).willReturn(groupName)
+                    if (groupName == groupWithPrefixSubgroup) {
+                        given(parentGroup.subGroupsStream).willAnswer {
+                            subgroupNames.map { subgroupName ->
+                                Mockito.mock(GroupModel::class.java).also { childGroup ->
+                                    given(childGroup.name).willReturn(subgroupName)
+                                }
+                            }.stream()
+                        }
+                    }
+                }
+            }.stream()
+        }
+        val expectedGroupNames = setOf("subgroup1", "subgroup2")
+        val actualGroupNames = mapper.getUserNamespacesFromGroups(user)
+        assertEquals(expectedGroupNames.sorted(), actualGroupNames.sorted())
+    }
+
+    @Test
+    fun testGetUserNamespacesFromCustomGroupPrefix() {
+        val customPrefix = "_MY-GROUP-PREFIX_".lowercase()
+        mapper.groupPrefix = customPrefix
+        assertEquals(mapper.groupPrefix, customPrefix)
+
+        val user = Mockito.mock(UserModel::class.java)
+        val groupNames = setOf("${customPrefix}company", "otherGroup")
+
+        given(user.groupsStream).willAnswer {
+            groupNames.map { groupName ->
+                Mockito.mock(GroupModel::class.java).also { parentGroup ->
+                    given(parentGroup.name).willReturn(groupName)
                 }
             }.stream()
         }

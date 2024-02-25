@@ -3,6 +3,7 @@ package de.alexanderwolz.keycloak.docker.mapping
 import org.keycloak.models.*
 import org.keycloak.protocol.docker.mapper.DockerAuthV2AttributeMapper
 import org.keycloak.representations.docker.DockerResponseToken
+import java.util.stream.Stream
 
 // reference: https://www.baeldung.com/keycloak-custom-protocol-mapper
 // see also https://www.keycloak.org/docs-api/21.1.1/javadocs/org/keycloak/protocol/ProtocolMapper.html
@@ -17,7 +18,8 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
 
     companion object {
 
-        internal const val GROUP_PREFIX = "registry-"
+        internal const val KEY_GROUP_PREFIX = "GROUP_PREFIX"
+        internal const val DEFAULT_GROUP_PREFIX = "registry-"
 
         //anybody with access to namespace repo is considered 'user'
         private const val ROLE_USER = "user"
@@ -38,6 +40,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
         internal val NAMESPACE_SCOPE_DEFAULT = setOf(NAMESPACE_SCOPE_GROUP)
     }
 
+    internal var groupPrefix = getGroupPrefixFromEnv()
     internal var catalogAudience = getCatalogAudienceFromEnv()
     internal var namespaceScope = getNamespaceScopeFromEnv()
 
@@ -164,7 +167,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
             if (namespacesFromGroups.contains(namespace)) {
                 return handleNamespaceRepositoryAccess(responseToken, accessItem, clientRoleNames, user)
             }
-            val reason = "Missing namespace group '$GROUP_PREFIX$namespace' - check groups"
+            val reason = "Missing namespace group '$groupPrefix$namespace' - check groups"
             return deny(responseToken, accessItem, user, reason)
         }
 
@@ -173,8 +176,11 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
     }
 
     internal fun getUserNamespacesFromGroups(user: UserModel): Collection<String> {
-        return user.groupsStream.filter { it.name.startsWith(GROUP_PREFIX) }
-            .map { it.name.lowercase().replace(GROUP_PREFIX, "") }.toList()
+        val allSubGroups = user.groupsStream.flatMap { it.subGroupsStream }
+        val allGroups = Stream.concat(user.groupsStream, allSubGroups)
+        val filteredGroups = allGroups.filter { it.name.lowercase().startsWith(groupPrefix) }
+        val namespaces = filteredGroups.map { it.name.lowercase().replace(groupPrefix, "") }
+        return namespaces.toList()
     }
 
     private fun handleNamespaceRepositoryAccess(
@@ -245,6 +251,10 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
             }
             return@let AUDIENCE_ADMIN
         } ?: AUDIENCE_ADMIN
+    }
+
+    private fun getGroupPrefixFromEnv():String{
+        return getEnvVariable(KEY_GROUP_PREFIX) ?: DEFAULT_GROUP_PREFIX
     }
 
     private fun getNamespaceScopeFromEnv(): Set<String> {
