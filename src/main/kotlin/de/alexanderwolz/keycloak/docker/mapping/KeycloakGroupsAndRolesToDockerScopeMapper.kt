@@ -18,8 +18,8 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
 
     companion object {
 
-        internal const val KEY_GROUP_PREFIX = "GROUP_PREFIX"
-        internal const val DEFAULT_GROUP_PREFIX = "registry-"
+        internal const val KEY_REGISTRY_GROUP_PREFIX = "REGISTRY_GROUP_PREFIX"
+        internal const val DEFAULT_REGISTRY_GROUP_PREFIX = "registry-"
 
         //anybody with access to namespace repo is considered 'user'
         private const val ROLE_USER = "user"
@@ -253,8 +253,8 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
         } ?: AUDIENCE_ADMIN
     }
 
-    private fun getGroupPrefixFromEnv():String{
-        return getEnvVariable(KEY_GROUP_PREFIX) ?: DEFAULT_GROUP_PREFIX
+    private fun getGroupPrefixFromEnv(): String {
+        return getEnvVariable(KEY_REGISTRY_GROUP_PREFIX) ?: DEFAULT_REGISTRY_GROUP_PREFIX
     }
 
     private fun getNamespaceScopeFromEnv(): Set<String> {
