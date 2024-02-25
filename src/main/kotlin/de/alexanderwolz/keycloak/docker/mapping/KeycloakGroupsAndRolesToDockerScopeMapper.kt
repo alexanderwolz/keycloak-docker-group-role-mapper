@@ -254,7 +254,7 @@ class KeycloakGroupsAndRolesToDockerScopeMapper : AbstractDockerScopeMapper(
     }
 
     private fun getGroupPrefixFromEnv(): String {
-        return getEnvVariable(KEY_REGISTRY_GROUP_PREFIX) ?: DEFAULT_REGISTRY_GROUP_PREFIX
+        return getEnvVariable(KEY_REGISTRY_GROUP_PREFIX)?.lowercase() ?: DEFAULT_REGISTRY_GROUP_PREFIX
     }
 
     private fun getNamespaceScopeFromEnv(): Set<String> {
