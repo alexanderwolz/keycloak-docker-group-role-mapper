@@ -4,14 +4,14 @@ plugins {
 }
 
 group = 'de.alexanderwolz'
-version = '1.5.2'
+version = '1.5.3'
 
 repositories {
     mavenCentral()
 }
 
 ext {
-    keycloakVersion = '23.0.7'
+    keycloakVersion = '24.0.4'
     jvmTarget = '17' //keycloak requires java 17 (major 61)
 }
 
