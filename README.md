@@ -1,7 +1,7 @@
-# Docker v2 - Groups and Role Mapper for Keycloak 24.x
+# Docker v2 - Groups and Role Mapper for Keycloak 25.x
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/alexanderwolz/keycloak-docker-group-role-mapper)
-![GitHub](https://img.shields.io/badge/keycloak-24.0.4-orange)
+![GitHub](https://img.shields.io/badge/keycloak-25.0.0-orange)
 ![GitHub](https://img.shields.io/badge/registry-2.8.2-orange)
 ![GitHub](https://img.shields.io/github/license/alexanderwolz/keycloak-docker-group-role-mapper)
 ![GitHub](https://img.shields.io/badge/test_cases-632-informational)
