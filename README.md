@@ -1,7 +1,7 @@
-# Docker v2 - Groups and Role Mapper for Keycloak 25.x
+# Docker v2 - Groups and Role Mapper for Keycloak 26.x
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/alexanderwolz/keycloak-docker-group-role-mapper)
-![GitHub](https://img.shields.io/badge/keycloak-25.0.0-orange)
+![GitHub](https://img.shields.io/badge/keycloak-26.1.0-orange)
 ![GitHub](https://img.shields.io/badge/registry-2.8.2-orange)
 ![GitHub](https://img.shields.io/github/license/alexanderwolz/keycloak-docker-group-role-mapper)
 ![GitHub](https://img.shields.io/badge/test_cases-632-informational)
@@ -95,4 +95,4 @@ Keycloak must be setup to have a docker-v2 registry client, roles and optional g
 
 Made with ❤️ in Bavaria
 <br>
-© 2024, <a href="https://www.alexanderwolz.de"> Alexander Wolz
+© 2025, <a href="https://www.alexanderwolz.de"> Alexander Wolz

@@ -4,9 +4,9 @@ plugins {
 }
 
 group = "de.alexanderwolz"
-version = "1.6.0"
+version = "1.7.0"
 
-val keycloakVersion = "25.0.0"
+val keycloakVersion = "26.1.0"
 val keycloakJdkVersion = 21 //Keycloak 25 relies on JDK 21
 
 repositories {
